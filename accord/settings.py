@@ -40,15 +40,20 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
+    'django.contrib.gis',
+    'corsheaders',
     'django.contrib.contenttypes',
+    'django.contrib.postgres',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'accounts',
-    'campaigns',
-    'biddings',
-    'cppm',
-    'payment'
+    'rest_framework',
+    'rest_framework.authtoken',
+    'accounts.apps.AccountsConfig',
+    'campaigns.apps.CampaignsConfig',
+    'biddings.apps.BiddingsConfig',
+    'cppm.apps.CppmConfig',
+    'payment.apps.PaymentConfig'
 ]
 
 MIDDLEWARE = [
@@ -62,6 +67,16 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'accord.urls'
+AUTH_USER_MODEL = 'accounts.Account'
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ]
+}
 
 TEMPLATES = [
     {
