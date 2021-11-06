@@ -1,9 +1,8 @@
 from datetime import datetime
-from typing import Dict, List, Tuple
 import pytest
 import unittest
 from typing import List
-from ...utils import account_id_generator
+from server.utils import account_id_generator
 
 
 @pytest.fixture
