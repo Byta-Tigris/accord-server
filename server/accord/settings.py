@@ -67,7 +67,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'accord.urls'
-AUTH_USER_MODEL = 'accounts.Account'
+# AUTH_USER_MODEL = 'accounts.Account'
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
