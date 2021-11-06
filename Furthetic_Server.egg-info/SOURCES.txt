@@ -1,5 +1,0 @@
-setup.py
-Furthetic_Server.egg-info/PKG-INFO
-Furthetic_Server.egg-info/SOURCES.txt
-Furthetic_Server.egg-info/dependency_links.txt
-Furthetic_Server.egg-info/top_level.txt
