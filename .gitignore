@@ -1,3 +1,4 @@
-Accord.egg-info/
-.env
-postgres-data/
+Furthetic_Server.egg-info
+**/.pytest_cache/
+**/__pycache__/
+**/.env
