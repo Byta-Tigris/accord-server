@@ -1,32 +1,24 @@
 from datetime import datetime
-from typing import Union
+from typing import Dict, Union
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models.manager import BaseManager
-from server.utils import account_id_generator
+from utils import account_id_generator, validate_password
+from django.core.validators import validate_email
 
-from server.utils.types import (EntityType)
 
-from utils.errors import AccountAlreadyExists, UserAlreadyExist, UserAlreadyExists
+from utils.errors import AccountAlreadyExists, UserAlreadyExists
 
 # Create your models here.
 
 
-class AccountsModel(models.Model):
-    class Meta:
-        app_label = "server.accounts"
-        abstract  = True
-
-
-
 class AccountInterface:
-    objects : BaseManager
+    objects : models.Manager
 
 
 
 
 
-class AccountManager(BaseManager):
+class AccountManager(models.Manager):
 
     def create_account(self, user: User,**kwargs) -> AccountInterface:
         """Create Account model -> Account\n
@@ -44,27 +36,37 @@ class AccountManager(BaseManager):
             raise KeyError("entity_type key is required for Account creation")
         if self.check_account_exists(email, entity_type):
             raise AccountAlreadyExists(email, entity_type)
+        
         account = self.model(
             id=self.generate_account_id(email, entity_type),
             user=user,
-  
-            **kwargs
+            **self.refract_kwargs_for_account_creation(kwargs)
         )
         account.save()
         return account
+    
 
+    def refract_kwargs_for_account_creation(self, kwargs: Dict) -> Dict:
+        """Remove keyword arguments like email, password, first_name, last_name from kwargs"""
+        return {key: kwargs[key] for key in kwargs.keys() if key not in ["email", "password", "first_name", "last_name"]}
     
     def create_user(self, email, password, **kwargs) -> User:
         """Create default User model in database if email doesn't exists -> User"""
         if self.check_user_exists_using_email(email):
             raise UserAlreadyExists(email)
+        
+        # Running some validators
+        validate_email(email)
+        validate_password(password)
+
         user: User = User.objects.create(
             username=email,
             email=email,
             is_staff=False,
             is_superuser=False,
             is_active=True,
-            **kwargs
+            first_name=kwargs.get("first_name", ""),
+            last_name=kwargs.get("last_name", "")
         )
         user.set_password(password)
         user.save()
@@ -107,7 +109,7 @@ class AccountManager(BaseManager):
 
 
 
-class Account(AccountsModel, AccountInterface):
+class Account(models.Model, AccountInterface):
     """Account model representing all users in the system.
     All types of entities like Creator, Business will be connected with an Account.
 
@@ -124,10 +126,11 @@ class Account(AccountsModel, AccountInterface):
     id = models.CharField(max_length=64, primary_key=True, default='')
     user = models.ForeignKey(User, related_name="user_account_relation", on_delete=models.CASCADE)
     created_on = models.DateTimeField(auto_now=True)
-    entity_type = models.CharField(max_length=20, blank=False, null=False, default=EntityType.Unknown)
+    entity_type = models.CharField(max_length=20, blank=False, null=False, default="")
     is_disabled_account = models.BooleanField(default=False)
 
     objects: AccountManager = AccountManager()
+    
 
     def disable_account(self) -> None:
         self.is_disabled_account = True
@@ -137,8 +140,7 @@ class Account(AccountsModel, AccountInterface):
         self.is_disabled_account = False
         self.save()
     
-    class Meta:
-        app_label = "server.accounts"
+    
 
 
 

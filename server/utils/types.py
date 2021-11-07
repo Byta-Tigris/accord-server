@@ -6,3 +6,4 @@ class StaffRoles:
 class EntityType:
     Creator = "Creator"
     Advertiser = "Advertiser"
+    Master = "Master"

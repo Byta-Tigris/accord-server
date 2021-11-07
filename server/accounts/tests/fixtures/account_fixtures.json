@@ -1,0 +1,59 @@
+[
+    {
+        "input": {
+            "email": "testdrivendev@gmail.com",
+            "password": "trymepass123",
+            "entity_type": "Creator",
+            "first_name": "Test",
+            "last_name": "Driven"
+        },
+        "output": "Account"
+    },
+    {
+        "input": {
+            "email": "praveenmakadia@female.com",
+            "password": "praveenmc123",
+            "entity_type": "Creator",
+            "first_name": "Praveen",
+            "last_name": "Makadia"
+        },
+        "output": "Account"
+    }, {
+        "input": {
+            "email": "lembotruck",
+            "password": "vichhollywood@43",
+            "first_name": "Brown",
+            "last_name": "Mundae"
+        },
+        "output": null
+    },
+    {
+        "input": {
+            "email": "bigbazaar@email.com",
+            "password": "madh",
+            "entity_type": "Advertiser",
+            "first_name": "Jeff",
+            "last_name": "Bezos"
+        },
+        "output": null
+    },
+    {
+        "input": {
+            "email": "jaiswaltrading@company.com",
+            "password": "passcode123",
+            "first_name": "Jaiswal",
+            "last_name": "Trading",
+            "entity_type": "Advertiser"
+        },
+        "output": "Account"
+    },
+    {
+        "input":{
+            "email": "viralkohli@anushak.com",
+            "password": "anushkaislobe12345",
+            "first_name": "Virat Anushka",
+            "last_name": "Kohli"
+        },
+        "output": "User"
+    }
+]
