@@ -53,7 +53,8 @@ INSTALLED_APPS = [
     'campaigns.apps.CampaignsConfig',
     'biddings.apps.BiddingsConfig',
     'cppm.apps.CppmConfig',
-    'payment.apps.PaymentConfig'
+    'payment.apps.PaymentConfig',
+    'content_manager.apps.ContentManagerConfig'
 ]
 
 MIDDLEWARE = [

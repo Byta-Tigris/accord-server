@@ -2,6 +2,7 @@ from typing import List, Union
 from django.test import TestCase
 from accounts.models import Account, User
 import json
+from utils.errors import AccountAlreadyExists
 from utils.types import EntityType
 import os
 
@@ -20,6 +21,15 @@ class AccountFixtureTestCase:
     @classmethod
     def load(cls, data) :
         return cls(data["output"], **data["input"])
+    
+    @staticmethod
+    def create_test_account() -> Account:
+        return Account.objects.create(
+            "devtandem@gmail.com",
+            "testcors123",
+            entity_type=EntityType.Creator,
+            contact="917714171428"
+        )
     
 
 class AccountTestCase(TestCase):
@@ -53,6 +63,37 @@ class AccountTestCase(TestCase):
             exists = Account.objects.check_user_exists_using_email(email)
             self.assertEqual(exists, User.objects.filter(email=email).count() == 1)
     
+
+    def test_enable_disable_accounts(self) -> None:
+        if len(self.accounts) == 0:
+            account = AccountFixtureTestCase.create_test_account()
+        else:
+            account = self.accounts[0]
+        self.assertEqual(account.is_disabled_account, False)
+        account.disable_account()
+        self.assertEqual(account.is_disabled_account, True)
+        account.enable_account()
+        self.assertEqual(account.is_disabled_account,False)
+    
+    def test_create_account_using_account(self) -> None:
+        if len(self.accounts) == 0:
+            account = AccountFixtureTestCase.create_test_account()
+        else:
+            account = self.accounts[0]
+        if len(account.contact) == 0:
+            account.contact = "917714171428"
+            account.save()
+        try:
+            new_account = Account.objects.create_account_using_account(account, EntityType.Creator)
+        except Exception as e:
+            self.assertIsInstance(e, AccountAlreadyExists)
+        new_account: Account = Account.objects.create_account_using_account(account, EntityType.Advertiser)
+        self.assertNotEqual(new_account.entity_type, account.entity_type)
+        self.assertEqual(new_account.contact, account.contact)
+        self.assertEqual(new_account.user.email,account.user.email)
+        self.assertDictEqual(new_account.to_kwargs(), account.to_kwargs())
+
+
     
     def tearDown(self) -> None:
        if len(self.accounts) > 0 :

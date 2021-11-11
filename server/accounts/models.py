@@ -1,9 +1,12 @@
 from datetime import datetime
-from typing import Dict, Union
+from typing import Any, Dict, List, Tuple, Union
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.models.fields.related import ForeignKey
+from django.db.models.query_utils import Q
 from utils import account_id_generator, validate_password
 from django.core.validators import validate_email
+from utils.ad_data import AdRate
 
 
 from utils.errors import AccountAlreadyExists, UserAlreadyExists
@@ -13,6 +16,8 @@ from utils.errors import AccountAlreadyExists, UserAlreadyExists
 
 class AccountInterface:
     objects : models.Manager
+    def save(self) -> None: ...
+    def to_kwargs(self) -> Dict[str, Any]: ...
 
 
 
@@ -34,16 +39,29 @@ class AccountManager(models.Manager):
         entity_type = kwargs["entity_type"]
         if not "entity_type" in kwargs:
             raise KeyError("entity_type key is required for Account creation")
-        if self.check_account_exists(email, entity_type):
+        if self.check_account_exists_using_email(email, entity_type):
             raise AccountAlreadyExists(email, entity_type)
         
-        account = self.model(
+        account: AccountInterface = self.model(
             id=self.generate_account_id(email, entity_type),
             user=user,
             **self.refract_kwargs_for_account_creation(kwargs)
         )
         account.save()
         return account
+    
+    def create_account_using_account(self, account: AccountInterface, entity_type: str) -> AccountInterface:
+        if self.check_account_exists_using_email(account.user.email, entity_type):
+            raise AccountAlreadyExists(account.user.email, entity_type)
+        account_kwargs = account.to_kwargs()
+        new_account = self.create_account(
+            account.user,
+            entity_type=entity_type,
+            **account_kwargs
+        )
+        return new_account
+        
+        
     
 
     def refract_kwargs_for_account_creation(self, kwargs: Dict) -> Dict:
@@ -101,10 +119,13 @@ class AccountManager(models.Manager):
             return False
         return User.objects.filter(email=email).exists()
     
-    def check_account_exists(self, email: str, entity: str) -> bool:
+    def check_account_exists_using_email(self, email: str, entity: str) -> bool:
+        """Verifies that account with email-entity pair exists"""
         if not (len(email) > 0 and "@" in email):
             return False
-        return self.filter(user__email = email).exists()
+        return self.filter(Q(user__email = email) & Q(entity_type = entity)).exists()
+
+
     
 
 
@@ -128,6 +149,11 @@ class Account(models.Model, AccountInterface):
     created_on = models.DateTimeField(auto_now=True)
     entity_type = models.CharField(max_length=20, blank=False, null=False, default="")
     is_disabled_account = models.BooleanField(default=False)
+    contact = models.CharField(max_length=14, default="")
+    username = models.CharField(max_length=70, unique=True, default="", db_index=True)
+    description = models.TextField(default="")
+    avatar = models.URLField(default="")
+    banner_image = models.URLField(default="")
 
     objects: AccountManager = AccountManager()
     
@@ -139,6 +165,46 @@ class Account(models.Model, AccountInterface):
     def enable_account(self) -> None:
         self.is_disabled_account = False
         self.save()
+    
+    def to_kwargs(self) -> Dict[str, Any]:
+        return {
+            "is_disabled_account": self.is_disabled_account,
+            "contact": self.contact,
+            "avatar": self.avatar,
+            "banner_image": self.banner_image,
+        }
+
+
+
+class SocialMediaHandle(models.Model):
+    platform = models.CharField(max_length=20, db_index=True, default="")
+    account = ForeignKey(Account, on_delete=models.CASCADE, related_name="social_handle_account")
+    access_token = models.TextField()
+    token_expiration_time = models.DateTimeField(auto_now=False, default=datetime.now())
+    created_on = models.DateTimeField(auto_now=True)
+    username = models.CharField(max_length=70, default="")
+    avatar = models.URLField()
+    fan_count = models.IntegerField(default=0)
+    is_publish_permission_valid = models.BooleanField(default=False)
+    rates = models.JSONField()  # {"platform_ad_code": {...data}}
+
+    def get_rate(self, key: str) -> AdRate:
+        if key not in self.rates:
+            raise KeyError("Platform %s doesn't have rates specified.".format(key))
+        return AdRate.from_dict(self.rates[key])
+    
+    @property
+    def all_rates(self) -> List[AdRate]:
+        return [self.get_rate(platform_ad_code) for platform_ad_code in self.rates]
+    
+    def add_rate(self, ad_rate: AdRate) -> None:
+        self.rates[ad_rate.ad_name] = ad_rate.serialize()
+    
+    
+
+
+
+
     
     
 
