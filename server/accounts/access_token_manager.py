@@ -12,7 +12,8 @@ class AccessTokenManager:
     _fernet = None
     _keys = None
 
-    def decrypt_acces_token(self, token: str) -> str: ...
+    def decrypt_acces_token(self, token: str) -> str:
+        return self._decrypt(token)
 
 
     def _encrypt(self, data: str) -> str:
@@ -34,7 +35,8 @@ class AccessTokenManager:
             self._fernet = MultiFernet(keys)
         return self._fernet
 
-    def encrypt_access_token(self, token: str) -> str: ...
+    def encrypt_access_token(self, token: str) -> str:
+        return self._encrypt(token)
 
     def _decrypt(self, data: str) -> str:
         return self.fernet.decrypt(data.encode()).decode()
@@ -43,6 +45,8 @@ class AccessTokenManager:
     def generate_new_key() -> str:
         return Fernet.generate_key().decode()
 
-    def rotate_token(self, token: str) -> None: ...
+    def rotate_token(self, token: str) -> str:
+        return self.fernet.rotate(token.encode()).decode()
+
 
 
