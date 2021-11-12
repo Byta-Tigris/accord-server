@@ -8,7 +8,7 @@ class TestAccessTokenManager(TestCase):
     
     def setUp(self) -> None:
         self.token_manager = AccessTokenManager()
-        self.keys = []
+        self.keys = [self.token_manager.generate_new_key() for i in range(0,10)]
     
     def test_generate_new_key(self):
         keys = []
@@ -22,7 +22,7 @@ class TestAccessTokenManager(TestCase):
     def test_get_fernet_keys(self):
         if len(self.keys) == 0:
             self.keys = [self.token_manager.generate_new_key() for i in range(0,10)]
-        keys = self.token_manager.get_fernet_keys(*self.keys)
+        keys = self.token_manager._transfrom_to_bytes(*self.keys)
         for key in keys:
             self.assertIsInstance(key, bytes)
     
@@ -41,7 +41,20 @@ class TestAccessTokenManager(TestCase):
         self.assertNotEqual(len(self.token_manager.fernet._fernets), n_keys)
     
     def test_encrypt(self):
-        pass
+        self.token_manager._keys = self.keys
+        values = ["a", "abc", "testabc", "fgh"]
+        for val in values:
+            encrypted = self.token_manager.encrypt_access_token(val)
+            self.assertGreater(len(encrypted), len(val))
+            self.assertNotEqual(val, encrypted)
 
     def test_decrypt(self):
-        pass
+        self.token_manager._keys = self.keys
+        values = ["a", "abc", "testabc", "fgh"]
+        encryptions = {}
+        for val in values:
+            encrypted = self.token_manager.encrypt_access_token(val)
+            encryptions[encrypted] = val
+        for key in encryptions:
+            decrypt = self.token_manager.decrypt_acces_token(key)
+            self.assertEqual(decrypt, encryptions[key])
