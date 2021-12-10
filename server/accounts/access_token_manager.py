@@ -12,6 +12,8 @@ class AccessTokenManager:
     _fernet = None
     _keys = None
 
+    _instance = None
+
     def decrypt_acces_token(self, token: str) -> str:
         return self._decrypt(token)
 

@@ -1,4 +1,5 @@
 from enum import Enum
+from dataclasses import dataclass
 
 class StaffRoles(Enum):
     Developer = 1
@@ -6,9 +7,9 @@ class StaffRoles(Enum):
 
 
 class EntityType(Enum):
-    Creator = "Creator"
-    Advertiser = "Advertiser"
-    Master = "Master"
+    Creator = "creator"
+    Advertiser = "advertiser"
+    Master = "master"
 
 
 class Platform(Enum):
@@ -26,5 +27,34 @@ class AdvertismentType(Enum):
 class Currency(Enum):
     INR = "INR"
     USD = "USD"
-        
+
+
+class MetricData:
+    pass
+
+
+@dataclass
+class InstagramHandleMetricData(MetricData):
+    impression: int
+    engagement: float
+    followers_count: int
+    reach: int
+    audience_gender: dict
+    audience_age: dict
+    audience_country: dict
+    audience_city: dict
+    
+
+@dataclass
+class YoutubeHandleMetricData(MetricData):
+    impression: int
+    followers_count: int
+    comments_count: int
+    likes_count: int
+    dislikes_count: int
+    shares_count: int
+    average_view_percentage: float
+    audience_gender: dict
+    audience_age: dict
+    audience_country: dict
 

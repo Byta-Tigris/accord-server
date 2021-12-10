@@ -14,6 +14,11 @@ from dotenv import load_dotenv
 
 import os
 
+############ CRYPTOGRAPHY IMPORTS    #############################################
+from cryptography.hazmat.backends import default_backend as default_crypto_backend
+from cryptography.hazmat.primitives.hashes import SHA256
+###################################################################################
+
 load_dotenv()
 
 
@@ -34,6 +39,13 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# CRYPTOGRAPHIC SETTINGS
+CRYPTOGRAPHY_BACKEND = default_crypto_backend()
+CRYPTOGRAPHY_DIGEST = SHA256
+CRYPTOGRAPHY_KEY = None
+CRYPTOGRAPHY_SALT = 'ACCORDIAN'
+
+
 
 # Application definition
 
@@ -52,7 +64,6 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'campaigns.apps.CampaignsConfig',
     'biddings.apps.BiddingsConfig',
-    'cppm.apps.CppmConfig',
     'payment.apps.PaymentConfig',
     'content_manager.apps.ContentManagerConfig'
 ]
