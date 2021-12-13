@@ -29,6 +29,11 @@ class Currency:
     USD = "USD"
 
 
+class RequestMethod:
+    Get = "GET"
+    Post = "POST"
+
+
 class MetricData:
     pass
 

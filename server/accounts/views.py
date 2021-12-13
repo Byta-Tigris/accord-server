@@ -117,7 +117,14 @@ class AccountLoginAPIView(APIView):
                 response_body["error"] = "Account related with username was not found."
                 _status = status.HTTP_404_NOT_FOUND
             else:
-                logger.error(err)                
+                response_body = {
+                    "error": f"Unable to accept the request. Try again later"
+                }
+                if settings.DEBUG:
+                    raise err
+                else:
+                    logger.error(err)
+                _status = status.HTTP_406_NOT_ACCEPTABLE                
                 
         finally:
             return Response(response_body, status=_status)

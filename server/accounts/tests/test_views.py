@@ -32,6 +32,22 @@ class CreateAccountFixture:
         return data
 
 
+@dataclass
+class LoginFixtures:
+    output_status: int
+    username: Optional[str] = None
+    password: Optional[str] = None
+
+    def to_kwargs(self) -> Dict[str, str]:
+        data = {}
+        if self.username is not None:
+            data['username'] = self.username
+        if self.password is not None:
+            data["password"] = self.password
+        return data
+    
+
+
 class TestAccountViews(APITestCase):
 
     def test_username_valid_view(self) -> None:
@@ -136,7 +152,77 @@ class TestAccountViews(APITestCase):
 
 
     def test_login(self) -> None:
-        pass
+        previous_token: Union[str, None] = None
+        account_tokens: List[str] = []
+        accounts = [
+            CreateAccountFixture(
+                email="bytatigrisdev@gmail.com",
+                password="testing123",
+                username="testname",
+                entity_type=EntityType.Creator,
+                output_success=False,
+                output_class=None
+            ),
+            CreateAccountFixture(
+                email="bytatigrisdeva@gmail.com",
+                password="testing1234",
+                username="testnamead",
+                entity_type=EntityType.Advertiser,
+                output_success=True,
+                output_class=Account
+            )
+        ]
+
+        create_account_url = reverse('create-account')
+        for account in accounts:
+            res = self.client.post(create_account_url, account.to_kwargs())
+            body = json.loads(res.content)
+            account_tokens.append(body["token"])
+
+
+        fixtures = [
+            LoginFixtures(
+                output_status=status.HTTP_400_BAD_REQUEST,
+            ),
+            LoginFixtures(
+                output_status=status.HTTP_400_BAD_REQUEST,
+                username=accounts[0].username,
+            ),
+            LoginFixtures(
+                output_status=status.HTTP_404_NOT_FOUND,
+                username="abcdefgrt",
+                password="pigg12345"
+            ),
+            LoginFixtures(
+                output_status=status.HTTP_401_UNAUTHORIZED,
+                username=accounts[0].username,
+                password=accounts[1].password
+            ),
+            LoginFixtures(
+                output_status=status.HTTP_202_ACCEPTED,
+                username=accounts[0].username,
+                password=accounts[0].password
+            ),
+            LoginFixtures(
+                output_status=status.HTTP_202_ACCEPTED,
+                username=accounts[1].username,
+                password=accounts[1].password
+            )
+        ]
+        url = reverse("login-account")
+        print(account_tokens)
+        for fixture in fixtures:
+            res = self.client.post(url, fixture.to_kwargs())
+            print(fixture.to_kwargs(), res)
+            self.assertEqual(res.status_code, fixture.output_status)
+            if fixture.output_status == status.HTTP_202_ACCEPTED:
+                body = json.loads(res.content)
+                self.assertTrue(body["token"] in account_tokens)
+                if previous_token:
+                    self.assertNotEqual(previous_token, body["token"])
+                previous_token = body["token"]
+
+
 
     def test_edit_account(self) -> None:
         pass

@@ -55,7 +55,7 @@ class YoutubeHandleMetricManager(SocialMediaHandleMetricsManager):
         self.model.calculate_engagement()
         return metric
 
-    
+
 
     
     

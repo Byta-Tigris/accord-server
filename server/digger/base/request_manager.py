@@ -1,45 +1,58 @@
-import json
-from typing import Dict, Union
+from typing import Dict, Tuple, Union
+from utils.types import RequestMethod
+from .types import AbstractRequestManager, AbstractRequestStruct, AbstractResponseStruct
+from log_engine.log import logger
 import requests
-from digger.base.types import AbstractRequestManager, AbstractResponseStructure, RequestMethod, Response, AbstractRequestStructure
 
 
-class RequestManager(AbstractRequestManager):
-    """
-    base_url -- must be a single string url or dict with key, value pair with a default key for fallback
-    """
-    
-    def __init__(self, base_url: Union[str, Dict[str, str]], headers: Dict = None) -> None:
-        self.base_url = base_url
-        self.headers = headers
-    
-    def process_params(self, params: Dict) -> Dict:
-        return params
-    
-    def process_data(self, data: Dict) -> Dict:
-        return data
-    
-    def get_url(self, req: AbstractRequestStructure) -> str:
-        if isinstance(self.base_url, str):
-            return self.base_url + req.endpoint
-        elif isinstance(self.base_url, dict):
-            return self.base_url[req.base_url_key] + req.endpoint
-    
-    def make_get_request(self, req: AbstractRequestStructure) -> AbstractResponseStructure:
-        query = req.get_query_params()
-        resp = requests.get(self.get_url(query), params=query, headers=self.headers)
-        return req.process_response(resp)
+class BaseRequestManager(AbstractRequestManager):
 
-    def make_post_request(self, req: AbstractRequestStructure) -> AbstractResponseStructure:
-        data = req.get_data_params()
-        query = req.get_query_params()
-        resp = requests.post(self.get_url(query), query=query, data=data, headers=self.headers)
-        return req.process_response(resp)
+    def __init__(self, base_url: Union[str, Dict[str, str]]) -> None:
+        self.base_url_record = {}
+        self.headers = None
+        if isinstance(base_url, str):
+            self.base_url_record["default"] = base_url
+        elif isinstance(base_url, dict):
+            self.base_url_record = base_url
+
+    def get_url(self, request: AbstractRequestStruct) -> str:
+        return self.base_url_record[request.url_key] + request.endpoint
     
-    def make_request(self, request: AbstractRequestStructure) -> AbstractResponseStructure:
-        if request.method == RequestMethod.Get:
-            return self.make_get_request(request)
-        elif request.method == RequestMethod.Post:
-            return self.make_post_request(request)
-        else:
-            raise ValueError("incompatible method in the request %s".format(request.__class__.__name__))
+    def get(self, request: AbstractRequestStruct) -> Tuple[requests.Response, str]:
+        url: str = self.get_url(request)
+        _headers: Dict = None
+        if request.headers:
+            _headers = request.headers
+        if self.headers:
+            _headers |= self.headers
+        return requests.get(url=url, params=request.get_params(), headers=_headers), url
+    
+    def post(self, request: AbstractRequestStruct) -> Tuple[requests.Response, str]:
+        url: str = self.get_url(request)
+        _headers: Dict = None
+        if request.headers:
+            _headers = request.headers
+        if self.headers:
+            _headers |= self.headers
+        return requests.post(url=url, data=request.get_params(), headers=_headers), url
+    
+    def make_request(self, request: AbstractRequestStruct) -> AbstractResponseStruct:
+        res: requests.Response = None
+        url: str = None
+        try:
+            if request.method == RequestMethod.Get:
+                res, url = self.get(request)
+            else:
+                res, url = self.post(request)
+            data = res.json()
+            return request.response_struct.from_data(url, res.status_code, data)            
+        except Exception as exc:
+            raise exc
+            # logger.error(exc)
+
+
+
+
+
+
+

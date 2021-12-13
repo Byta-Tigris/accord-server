@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, Callable, Dict
 from django.http.request import QueryDict
 from utils.errors import PasswordValidationError
+import os
 
 
 def account_id_generator(email: str, entity_type: str) -> str:
@@ -94,3 +95,8 @@ def querydict_to_dict(querydict: QueryDict) -> Dict[str, Any]:
     for key, value in querydict.items():
         data[key] = value
     return data
+
+
+
+def get_secret(name: str) -> str:
+    return os.getenv(name)
