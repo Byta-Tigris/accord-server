@@ -47,6 +47,8 @@ CRYPTOGRAPHY_SALT = 'ACCORDIAN'
 
 
 
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -64,6 +66,7 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'campaigns.apps.CampaignsConfig',
     'biddings.apps.BiddingsConfig',
+    'log_engine.apps.LogEngineConfig',
     'payment.apps.PaymentConfig',
     'content_manager.apps.ContentManagerConfig'
 ]
@@ -115,11 +118,11 @@ WSGI_APPLICATION = 'accord.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'postgres',
-        'USER': os.getenv("ACCORD_POSTGRES_USERNAME"),
-        'PASSWORD': os.getenv("ACCORD_POSTGRES_PASSWORD"),
+        'NAME': 'accord' if not DEBUG else 'accord_test_db',
+        'USER':  os.getenv("ACCORD_POSTGRES_USERNAME") if not DEBUG else 'postgres',
+        'PASSWORD': os.getenv("ACCORD_POSTGRES_PASSWORD") if not DEBUG else 'krispi@103904',
         'HOST': 'localhost',
-        'PORT': '5438',
+        'PORT': '5432',
     }
 }
 

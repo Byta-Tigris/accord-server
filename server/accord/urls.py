@@ -23,5 +23,6 @@ urlpatterns = [
     path("campaigns/", include("campaigns.urls")),
     path("cppm/", include("cppm.urls")),
     path("payment/", include("payment.urls")),
-    path("content_manager/", include("content_manager.urls"))
+    path("content_manager/", include("content_manager.urls")),
+    path("sacred_logs/", include("log_engine.urls"))
 ]

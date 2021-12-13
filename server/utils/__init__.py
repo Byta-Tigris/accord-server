@@ -1,7 +1,7 @@
 from hashlib import sha256
 from datetime import date, datetime, timedelta
-from typing import Callable
-
+from typing import Any, Callable, Dict
+from django.http.request import QueryDict
 from utils.errors import PasswordValidationError
 
 
@@ -18,7 +18,7 @@ def validate_password(password: str) -> bool:
     raises PasswordValidationError if wrong\n
     Returns True"""
     if (
-        7 < len(password) < 21
+        5 < len(password) < 21
         and any(char.isdigit() for char in password)
         and any(char.isalpha() for char in password)
     ):
@@ -87,3 +87,10 @@ def seconds_to_datetime_from_time(secs: int, current_dt: datetime) -> datetime:
 def seconds_to_datetime_from_now(secs: int) -> datetime:
     time = datetime.utcnow()
     return seconds_to_datetime_from_time(secs, time)
+
+
+def querydict_to_dict(querydict: QueryDict) -> Dict[str, Any]:
+    data = {}
+    for key, value in querydict.items():
+        data[key] = value
+    return data

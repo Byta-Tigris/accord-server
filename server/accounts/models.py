@@ -95,7 +95,7 @@ class AccountManager(models.Manager):
     def create_user(self, email, password, **kwargs) -> User:
         """Create default User model in database if email doesn't exists -> User"""
         if self.check_user_exists_using_email(email):
-            raise UserAlreadyExists(email)
+            return User.objects.filter(email=email).first()
         
         # Running some validators
         validate_email(email)
@@ -152,7 +152,7 @@ class AccountManager(models.Manager):
     def check_username_exists(self, username: str) -> bool:
         """Returns True if the username exists"""
         return self.filter(username=username).exists()
-
+    
 
     
 
@@ -351,7 +351,7 @@ class SocialMediaHandleMetrics(models.Model):
         if "_data" not in name:
             name += "_data"
         attr = getattr(self, name, {})
-        if isinstance(attr, (HStoreField, dict)):
+        if isinstance(attr, (JSONField, dict)):
             date_time = time_to_string(get_current_time() or time)
             attr[date_time] = value
         else:

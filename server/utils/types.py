@@ -1,30 +1,30 @@
 from enum import Enum
 from dataclasses import dataclass
 
-class StaffRoles(Enum):
+class StaffRoles:
     Developer = 1
     Admin = 2
 
 
-class EntityType(Enum):
+class EntityType:
     Creator = "creator"
     Advertiser = "advertiser"
     Master = "master"
 
 
-class Platform(Enum):
+class Platform:
     Instagram = "instagram"
     Youtube = "youtube"
 
 
-class AdvertismentType(Enum):
+class AdvertismentType:
     Story = "story"
     ShortVideo = "short_video"
     Post = "post"  # Images , audios or video less than 2 min in time
     LongVideo = "long_video"
 
 
-class Currency(Enum):
+class Currency:
     INR = "INR"
     USD = "USD"
 
