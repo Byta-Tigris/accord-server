@@ -28,8 +28,9 @@ def validate_password(password: str) -> bool:
 
 
 # DATE-MONTH-YEAR-HOUR-MINUTE-SECOND-MICROSECOND ---- UTC_OFFSET = 0
-# EG: 20-11-2021-07-09-44-915637 ;; ALL TIMES IN UTC
-DATE_TIME_FORMAT = "%d-%m-%Y-%H-%M-%S-%f"
+# EG: 20-11-2021T07-09-44-915637 ;; ALL TIMES IN UTC
+DATE_TIME_FORMAT = "%d-%m-%YT%I:%M:%S"
+FACEBOOK_RESPONSE_DATE_TIME_FORMAT = "%Y-%m-%dT%I:%M:%S%z"
 
 
 def get_current_time() -> datetime:
@@ -64,6 +65,8 @@ def get_modified_time_wrapper(
 def get_handle_metrics_expire_time(time: datetime = get_current_time()) -> datetime:
     return get_modified_time(days=7, time=time)
 
+def get_datetime_from_facebook_response(time_str: str) -> datetime:
+    return datetime.strptime(time_str, FACEBOOK_RESPONSE_DATE_TIME_FORMAT)
 
 
 def time_to_string(time: datetime) -> str:
@@ -100,3 +103,6 @@ def querydict_to_dict(querydict: QueryDict) -> Dict[str, Any]:
 
 def get_secret(name: str) -> str:
     return os.getenv(name)
+
+
+

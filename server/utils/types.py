@@ -6,6 +6,18 @@ class StaffRoles:
     Admin = 2
 
 
+class InstagramMediaProductTypes:
+    AD = "AD"
+    FEED = "FEED"
+    IGTV = "IGTV"
+    STORY = "STORY"
+
+
+class InstagramMediaTypes:
+    CAROUSEL_ALBUM = "CAROUSEL_ALBUM"
+    IMAGE = "IMAGE"
+    VIDEO = "VIDEO"
+
 class EntityType:
     Creator = "creator"
     Advertiser = "advertiser"

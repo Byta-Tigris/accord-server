@@ -19,9 +19,10 @@ class AbstractRequestStruct:
     ignorable_fields: List[str] = []
     _ignored_fields: List[str] = ["response_struct", "url_key", "endpoint", 
                                     "ignorable_fields", "_gnorable_fields",
-                                    "status_code", "header", "method"]
+                                    "status_code", "header", "method", "params_query", "params_data"]
     headers: Dict = None
     method: str = None
+    status_code = 200
 
     def get_ignorable_fields(self) -> List[str]:
         return self.ignorable_fields + self._ignored_fields

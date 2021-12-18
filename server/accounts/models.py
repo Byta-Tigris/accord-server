@@ -1,6 +1,6 @@
 
 ################# Python Built-in imports ####################
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Union
 import string
 import random
@@ -224,6 +224,7 @@ class SocialMediaHandle(models.Model):
     handle_uid -- UID for the handle with which the platforms backend will identify the request\n
     handle_access_token -- Encrypted Access Token of the handle generated for data exchange\n
     token_expiration_time -- Validity Time bound of the Handle Acess Token\n
+    last_date_time_of_token_use -- Last time the token was used to make nay request
     created_on -- The column created in the Table\n
     username -- Username of Display Name on the media handle\n
                 for e.g Ajay Nagar has Channels with name Carryminati and CarryIsLive\n
@@ -251,6 +252,7 @@ class SocialMediaHandle(models.Model):
     refresh_token = encrypt(models.TextField(default=""))
     is_refresh_token_dependent = models.BooleanField(default=False)
     token_expiration_time = models.DateTimeField(default=get_current_time)
+    last_date_time_of_token_use  = models.DateTimeField(default=get_current_time)
     created_on = models.DateTimeField(default=get_current_time)
     username = models.CharField(max_length=70, default="")
     avatar = models.URLField(null=True, blank=True)
@@ -270,13 +272,40 @@ class SocialMediaHandle(models.Model):
     def add_rate(self, ad_rate: AdRate) -> None:
         self.rates[ad_rate.ad_name] = ad_rate.serialize()
     
-    def set_access_token(self, value: str, token_expiration_time: datetime, refresh_token: str = None) -> None:
-        # self.handle_access_token = self.access_token_manager.encrypt_access_token(value)
+    def get_token_expiration_datetime(self, seconds: int, time: datetime = get_current_time()):
+        self.token_expiration_time = get_current_time() + timedelta(seconds=seconds)
+    
+    def _set_access_token(self, value: str, token_expiration_time: int, refresh_token: str = None) -> None:
         self.access_token = value
-        self.token_expiration_time = token_expiration_time
+        self.token_expiration_time = self.get_token_expiration_datetime(token_expiration_time)
         if refresh_token:
             self.refresh_token = refresh_token
             self.is_refresh_token_dependent = True
+    
+    def set_access_token(self, value: str, token_expiration_time: int, refresh_token: str = None) -> None:
+        """
+        Addes refresh token along with converting seconds to datetime
+
+        Keyword Arguments:
+        value -- Acccess token
+        token_expiration_time -- Time in seconds for token to expire
+        refresh_token -- If the token refresh requires an refresh token, Optional
+        """
+        self._set_access_token(value, token_expiration_time, refresh_token=refresh_token)
+        self.save()
+    
+
+    def _set_last_date_time_of_token_use(self) -> None:
+        self.last_date_time_of_token_use = get_current_time()
+        # 5184000 = 60 days
+        self.token_expiration_time = self.get_token_expiration_datetime(seconds=5184000, time=self.last_date_time_of_token_use)
+
+
+    def set_last_date_time_of_token_use(self) -> None:
+        """
+        Used in case of fb graph api, as the graph api access_token is usable for 60 days after the last use
+        """
+        self._set_last_date_time_of_token_use()
         self.save()
     
     @property

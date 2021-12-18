@@ -18,37 +18,26 @@ class BaseRequestManager(AbstractRequestManager):
     def get_url(self, request: AbstractRequestStruct) -> str:
         return self.base_url_record[request.url_key] + request.endpoint
     
-    def get(self, request: AbstractRequestStruct) -> Tuple[requests.Response, str]:
-        url: str = self.get_url(request)
-        _headers: Dict = None
-        if request.headers:
-            _headers = request.headers
-        if self.headers:
-            _headers |= self.headers
-        return requests.get(url=url, params=request.get_params(), headers=_headers), url
-    
-    def post(self, request: AbstractRequestStruct) -> Tuple[requests.Response, str]:
-        url: str = self.get_url(request)
-        _headers: Dict = None
-        if request.headers:
-            _headers = request.headers
-        if self.headers:
-            _headers |= self.headers
-        return requests.post(url=url, data=request.get_params(), headers=_headers), url
-    
     def make_request(self, request: AbstractRequestStruct) -> AbstractResponseStruct:
         res: requests.Response = None
         url: str = None
+        _headers: Dict = None
+        if request.headers:
+            _headers = request.headers
+        if self.headers:
+            _headers |= self.headers
         try:
-            if request.method == RequestMethod.Get:
-                res, url = self.get(request)
-            else:
-                res, url = self.post(request)
+            url = self.get_url(request)
+            params, data = request.get_params()
+            caller = requests.get
+            if request.method == RequestMethod.Post:
+                caller = requests.post
+            res = caller(url=url, params=params, data=data, headers=_headers)
             data = res.json()
-            return request.response_struct.from_data(url, res.status_code, data)            
+            return request.response_struct.from_data(res.url, res.status_code, data)            
         except Exception as exc:
-            raise exc
-            # logger.error(exc)
+            # raise exc
+            logger.error(exc)
 
 
 
