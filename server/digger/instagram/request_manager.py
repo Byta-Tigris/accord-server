@@ -1,4 +1,15 @@
 from digger.base.request_manager import BaseRequestManager
+import json
+
+
+
+class FacebookGraphAPIException(Exception):
+
+    def __init__(self, **error) -> None:
+        self.error = error
+        if self.error != None:
+            self.error_msg = json.dumps(error)
+        super().__init__(self.error_msg)
 
 
 class InstagramRequestManager(BaseRequestManager):

@@ -27,6 +27,10 @@ class FacebookLongLiveTokenRequest(RequestStruct):
 
 
 class FaceboolPageAccountsRequest(RequestStruct):
+    """
+    Retrieves all fb pages related with the account\n
+    The page will contain all the instagram_business_accounts and their data if connected\n
+    """
     endpoint = "/me/accounts"
     method = RequestMethod.Get
     response_struct = FacebookPagesAccountsResponse

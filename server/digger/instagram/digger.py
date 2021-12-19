@@ -3,9 +3,9 @@ from django.db.models.query_utils import Q
 from accounts.models import Account, SocialMediaHandle
 from utils import get_modified_time
 from utils.types import Platform
-from .request_manager import InstagramRequestManager
+from .request_manager import FacebookGraphAPIException, InstagramRequestManager
 from .request_struct import *
-
+from log_engine.log import logger
 
 
 class InstagramDigger:
@@ -19,11 +19,11 @@ class InstagramDigger:
         return response_token_exchange
     
 
-    def _create_or_update_token_in_handles(self, account: Account, access_token: str, expires_in: int, handle_queryset: QuerySet[SocialMediaHandle] = None) -> Union[None, List[SocialMediaHandle]]:
+    def _create_or_update_token_in_handles(self, account: Account, access_token: str, expires_in: int, handle_queryset: QuerySet[SocialMediaHandle] = None) -> List[SocialMediaHandle]:
         request_page_accounts = FaceboolPageAccountsRequest(access_token)
         response_pages_accounts: FacebookPagesAccountsResponse = request_page_accounts(self.req_manager)
         if response_pages_accounts.has_error():
-            return None
+            raise FacebookGraphAPIException(response_pages_accounts.error)
         pages = response_pages_accounts.pages
         while len(response_pages_accounts.pages) > 0 and response_pages_accounts.paging.after != None:
             response_pages_accounts = request_page_accounts(self.req_manager, after=response_pages_accounts.paging.after)
@@ -77,11 +77,13 @@ class InstagramDigger:
         short_live_access_token -- Short-Lived Access token
 
         """
-        response_token_exchange: FacebookLongLiveTokenResponse = self.get_long_live_token(short_live_access_token)
-        if response_token_exchange.has_error():
-            return None
-        return self._create_or_update_token_in_handles(account, response_token_exchange.access_token, response_token_exchange.expires_in)
-
+        try:
+            response_token_exchange: FacebookLongLiveTokenResponse = self.get_long_live_token(short_live_access_token)
+            if response_token_exchange.has_error():
+                raise FacebookGraphAPIException(response_token_exchange.error)
+            return self._create_or_update_token_in_handles(account, response_token_exchange.access_token, response_token_exchange.expires_in)
+        except Exception as err:
+            logger.error(err)
     
     def resync_social_handles(self, account: Account) -> Union[None, SocialMediaHandle]:
         """
@@ -89,14 +91,17 @@ class InstagramDigger:
         and wants to add it into our Database\n
         Resync will fetch new accounts and add the new handles without re-login
         """
-        handles_queryset: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.filter(Q(account=account) & Q(platform=Platform.Instagram))
-        if not handles_queryset.exists():
-            return None
-        handle = handles_queryset.first()
-        access_token = handle.access_token
-        expires_in = 5184000
-        return self._create_or_update_token_in_handles(account, access_token, expires_in, handle_queryset=handles_queryset)
-        
+        try:
+            handles_queryset: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.filter(Q(account=account) & Q(platform=Platform.Instagram))
+            if not handles_queryset.exists():
+                return None
+            handle = handles_queryset.first()
+            access_token = handle.access_token
+            expires_in = 5184000
+            return self._create_or_update_token_in_handles(account, access_token, expires_in, handle_queryset=handles_queryset)
+        except Exception as err:
+            logger.error(err)
+    
         
         
         
