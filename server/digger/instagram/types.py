@@ -39,7 +39,7 @@ class IGMedia:
 
 class PagingCursor:
     def __init__(self, paging: Dict[str, Union[str, Dict[str, str]]]) -> None:
-        cursors = paging["cursors"]
+        cursors = paging.get("cursors",{})
         self.before = None
         self.after = None
 
@@ -53,6 +53,12 @@ class PagingCursor:
             "after": self.after,
             "before": self.before
         }}
+    
+    def has_after(self) -> bool:
+        return self.after != None
+    
+    def has_before(self) -> bool:
+        return self.before != None
 
 
 
@@ -61,14 +67,14 @@ class PagingCursor:
 
 @dataclass
 class IGUser:
-    username: str
-    id: str
-    ig_id: int
-    name: str
-    biography: str
-    followers_count: str
+    username: Optional[str] = None
+    id: Optional[str] = None
+    ig_id: Optional[int] = None
+    name: Optional[str] = None
+    biography: Optional[str] = None
+    followers_count: Optional[int] = 0
     profile_picture_url: Optional[str] = ""
-    media_count: int = 0
+    media_count: Optional[int] = 0
 
     def to_kwargs(self) -> Dict[str, Union[str, int]]:
         return vars(self)

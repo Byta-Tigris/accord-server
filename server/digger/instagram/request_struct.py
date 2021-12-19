@@ -41,6 +41,15 @@ class FaceboolPageAccountsRequest(RequestStruct):
 
 
 
+class InstagramUserDataRequest(RequestStruct):
+    method = RequestMethod.Get
+    response_struct = InstagramUserDataResponse
+
+    def __init__(self, ig_user_id: str, access_token: str) -> None:
+        self.endpoint = f"/{ig_user_id}"
+        self.access_token = access_token
+        self.fields = "id,followers_count,media_count,name,profile_picture_url,username,biography"
+
 class InstagramUserDemographicInsightsRequest(RequestStruct):
     method = RequestMethod.Get
     response_struct = InstagramUserDemographicInsightsResponse

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 
 import os
+from dotenv import load_dotenv, dotenv_values
 
 ############ CRYPTOGRAPHY IMPORTS    #############################################
 from cryptography.hazmat.backends import default_backend as default_crypto_backend
@@ -20,8 +21,11 @@ from cryptography.hazmat.primitives.hashes import SHA256
 
 
 
-
 from pathlib import Path
+
+
+# Setting env variables
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -35,6 +39,8 @@ SECRET_KEY = 'django-insecure-(j%czj2n#g@&ya1*#=)9*$yb0c_tz-ts-+f9u2neo8=43d78u=
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+
 
 ALLOWED_HOSTS = []
 

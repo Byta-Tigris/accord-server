@@ -16,15 +16,15 @@ class FacebookLongLiveTokenResponse(ResponseStruct):
 
 class FacebookPagesAccountsResponse(ResponseStruct):
 
-    def __init__(self, url: str, status_code: int, data: List[Dict[str, Union[str, Dict[str, int]]]] = [], paging: Dict[str, Union[str, Dict[str, str]]] = [], error = None, **kwargs) -> None:
+    def __init__(self, url: str, status_code: int, data: List[Dict[str, Union[str, Dict[str, int]]]] = [], paging: Dict[str, Union[str, Dict[str, str]]] = {}, error = None, **kwargs) -> None:
         self.error = error
-        self.pages: List[FacebookPageData] = map(lambda arg: FacebookPageData(**arg), data)
+        self.pages: List[FacebookPageData] = list(map(lambda arg: FacebookPageData(**arg), data))
         self.paging: PagingCursor = PagingCursor(paging)
         super().__init__(url, status_code)
 
     def to_kwargs(self) -> Dict[str, Union[List, Dict]]:
         return {
-            "data": map(lambda val: val.to_kwargs(), self.pages),
+            "data": list(map(lambda val: val.to_kwargs(), self.pages)),
             "paging": self.paging.to_kwargs()
         }
     
@@ -35,6 +35,20 @@ class FacebookPagesAccountsResponse(ResponseStruct):
                 ig_user_ls.append(page.instagram_business_account)
         return ig_user_ls
 
+
+class InstagramUserDataResponse(ResponseStruct):
+    def __init__(self, url: str, status_code: int, error = None, id: str = None,
+            followers_count: int = 0, media_count: int = 0, name: str = None,
+            profile_picture_url: str = None, username: str = None, biography: str = None
+             , **kwargs) -> None:
+        self.error = error
+        self.user = IGUser(
+            id=id,
+            username=username,followers_count=followers_count,
+            biography=biography, media_count=media_count, name=name,
+            profile_picture_url=profile_picture_url
+        )
+        super().__init__(url, status_code, **kwargs)
 
 
 class InstagramUserDemographicInsightsResponse(ResponseStruct):
@@ -72,10 +86,10 @@ class InstagramUserInsightsResponse(ResponseStruct):
 
 class InstagramUserMediaListResponse(ResponseStruct):
 
-    def __init__(self, url: str, status_code: int, data: List[Dict[str, Any]] = [], paging: Dict[str, Any] = [], error = None, **kwargs) -> None:
+    def __init__(self, url: str, status_code: int, data: List[Dict[str, Any]] = [], paging: Dict[str, Any] = {}, error = None, **kwargs) -> None:
         self.error = error
         self.paging = PagingCursor(paging)
-        self.data = map(lambda media: IGMedia(**media), data)
+        self.data = list(map(lambda media: IGMedia(**media), data))
         super().__init__(url, status_code, **kwargs)
 
 

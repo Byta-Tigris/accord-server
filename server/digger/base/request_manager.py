@@ -20,7 +20,7 @@ class BaseRequestManager(AbstractRequestManager):
     def get_url(self, request: AbstractRequestStruct) -> str:
         return self.base_url_record[request.url_key] + request.endpoint
     
-    def make_request(self, request: AbstractRequestStruct) -> AbstractResponseStruct:
+    def make_request(self, request: AbstractRequestStruct, **extra_params) -> AbstractResponseStruct:
         res: requests.Response = None
         url: str = None
         _headers: Dict = None
@@ -34,6 +34,7 @@ class BaseRequestManager(AbstractRequestManager):
             caller = requests.get
             if request.method == RequestMethod.Post:
                 caller = requests.post
+            params |= extra_params
             res = caller(url=url, params=params, data=data, headers=_headers)
             data = res.json()
             return request.response_struct.from_data(res.url, res.status_code, data)            

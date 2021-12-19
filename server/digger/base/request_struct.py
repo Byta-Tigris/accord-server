@@ -43,14 +43,8 @@ class RequestStruct(AbstractRequestStruct):
         var = self._get_params()
         return self.format_params(**var[0]), self.format_params(**var[1])
     
-    def __call__(self, manager: AbstractRequestManager, after=None, before=None) -> AbstractResponseStruct:
-        if after != None:
-            self.after = after
-            self.params_query += ["after"]
-        elif before != None:
-            self.before = before
-            self.params_query += ["before"]
-        return manager.make_request(self)
+    def __call__(self, manager: AbstractRequestManager, **extra_params) -> AbstractResponseStruct:
+        return manager.make_request(self, **extra_params)
         
     
     
