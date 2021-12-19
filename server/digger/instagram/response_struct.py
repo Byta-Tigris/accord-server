@@ -1,11 +1,7 @@
 from typing import Any, Dict, List, Union
 from digger.base.response_struct import ResponseStruct
-from digger.types import *
+from .types import *
 from utils import get_datetime_from_facebook_response, time_to_string
-
-
-
-
 
 
 class FacebookLongLiveTokenResponse(ResponseStruct):

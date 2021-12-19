@@ -20,7 +20,7 @@ class FacebookLongLiveTokenRequest(RequestStruct):
     response_struct = FacebookLongLiveTokenResponse
 
     def __init__(self, access_token: str) -> None:
-        self.access_token = access_token
+        self.fb_exchange_token = access_token
         self.grant_type = "fb_exchange_token"
         self.client_secret = get_secret("FACEBOOK_CLIENT_SECRET")
         self.client_id = get_secret("FACEBOOK_CLIENT_ID")

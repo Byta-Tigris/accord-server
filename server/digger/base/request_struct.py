@@ -5,10 +5,9 @@ from utils.types import RequestMethod
 
 class RequestStruct(AbstractRequestStruct):
     method = RequestMethod.Get
+    params_query: List[str] = []
+    params_data: List[str] = []
     
-    def __init__(self, params_query: List[str] = [], params_data: List[str] = [], **kwargs) -> None:
-        self.params_query: List[str] = params_query
-        self.params_data: List[str] = params_data
     
     def _get_params(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
@@ -19,15 +18,14 @@ class RequestStruct(AbstractRequestStruct):
         """
         params = {}
         data = {}
-        variables = vars(self)
-        for key, value in variables.items():
-            if value is None or key in self.get_ignorable_fields():
-                del variables[key]
-            elif key  in self.params_query:
+        variables = {}
+        for key, value in vars(self).items():
+            if key in self.params_query:
                 params[key] = value
-                del variables[key]
             elif key in self.params_data:
                 data[key] = value
+            elif value is not None and key not in self.get_ignorable_fields():
+                variables[key]  = value
         if self.method == RequestMethod.Post:
             return (params, variables)
         return (variables, data)

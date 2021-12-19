@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
-from dotenv import load_dotenv
 
 import os
 
@@ -19,7 +18,7 @@ from cryptography.hazmat.backends import default_backend as default_crypto_backe
 from cryptography.hazmat.primitives.hashes import SHA256
 ###################################################################################
 
-load_dotenv()
+
 
 
 from pathlib import Path

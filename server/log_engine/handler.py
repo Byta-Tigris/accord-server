@@ -14,7 +14,6 @@ class DatabaseLogHandler(Handler):
         super(DatabaseLogHandler, self).__init__()
     
     def emit(self, record: LogRecord) -> None:
-        print(self.format(record))
         try:
             model = InfoLogEntry
             if record.levelno == logging.DEBUG:

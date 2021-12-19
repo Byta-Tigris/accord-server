@@ -1,7 +1,7 @@
 
 
 from typing import Any, Dict, List, Union
-from digger.base.types import AbstractRequestStruct, AbstractResponseStruct
+from digger.base.types import  AbstractResponseStruct
 
 
 
@@ -17,7 +17,7 @@ class ResponseStruct(AbstractResponseStruct):
 
 
     @staticmethod
-    def process_data( kwargs: Union[Dict, List, str]) -> Dict:
+    def process_data(kwargs: Union[Dict, List, str]) -> Dict:
         return kwargs 
 
     @classmethod

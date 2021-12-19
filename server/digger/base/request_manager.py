@@ -1,8 +1,10 @@
-from typing import Dict, Tuple, Union
+from typing import Dict, Union
 from utils.types import RequestMethod
 from .types import AbstractRequestManager, AbstractRequestStruct, AbstractResponseStruct
 from log_engine.log import logger
 import requests
+
+from django.conf import settings
 
 
 class BaseRequestManager(AbstractRequestManager):
@@ -36,8 +38,11 @@ class BaseRequestManager(AbstractRequestManager):
             data = res.json()
             return request.response_struct.from_data(res.url, res.status_code, data)            
         except Exception as exc:
-            # raise exc
-            logger.error(exc)
+            raise exc
+            if settings.DEBUG:
+                raise exc
+            else:
+                logger.error(exc)
 
 
 
