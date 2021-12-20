@@ -84,6 +84,7 @@ class InstagramUserInsightsResponse(ResponseStruct):
 
 
 
+
 class InstagramUserMediaListResponse(ResponseStruct):
 
     def __init__(self, url: str, status_code: int, data: List[Dict[str, Any]] = [], paging: Dict[str, Any] = {}, error = None, **kwargs) -> None:
@@ -110,11 +111,13 @@ class InstagramSingleMediaInsightResponse(ResponseStruct):
 
     def __init__(self, url: str, status_code: int, data: List[Dict] = [], error = None, **kwargs) -> None:
         self.error = error
-        if not error:
+        self.insights = None
+        if error == None:
             args = {}
             for metric in data:
                 if "name" in metric and "values" in metric and len(metric["values"]) > 0:
-                    args[metric["name"]] = metric["values"]["value"]
+                    value = metric["values"][0]
+                    args[metric["name"]] = value["value"]
             self.insights = self.metrics_class(**args)
         super().__init__(url, status_code, **kwargs)
 

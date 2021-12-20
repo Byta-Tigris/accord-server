@@ -1,5 +1,6 @@
 from typing import List
 from digger.base.request_struct import RequestStruct
+from digger.instagram.request_manager import InstagramRequestManager
 from digger.instagram.response_struct import *
 from utils import get_secret
 from utils.types import RequestMethod
@@ -72,6 +73,8 @@ class InstagramUserInsightsRequest(RequestStruct):
         self.period = period
 
 
+
+
 class InstagramUserMediaListRequest(RequestStruct):
     method = RequestMethod.Get
     response_struct = InstagramUserMediaListResponse
@@ -82,9 +85,10 @@ class InstagramUserMediaListRequest(RequestStruct):
         self.fields = ",".join(["caption", "comments_count", "id", "ig_id",
                                 "is_comment_enabled", "like_count", "media_product_type",
                                 "media_type", "media_url", "owner", "permalink", "shortcode",
-                                "thumbnail_url", "timestamp", "username", "video_title"])
+                                "thumbnail_url", "timestamp", "username", "video_title", "children{id,media_url,media_type}"])
         if only_id_in_response:
             self.fields = "id"
+    
 
 
 class InstagramUserStoriesListRequest(InstagramUserMediaListRequest):
@@ -106,13 +110,16 @@ class InstagramSingleMediaInsightsRequest(RequestStruct):
         self.endpoint = f"/{ig_media_id}/insights"
         self.access_token = access_token
         self.response_struct = InstagramSingleMediaInsightResponse
-        self.metric = "engagement,impressions,reach,saved,video_views"
+        self.metric = ["engagement","impressions","reach","saved",]
         if media_product_type == InstagramMediaProductTypes.STORY:
             self.response_struct = InstagramStoryMediaInsightsResponse
-            self.metric = "exits,impressions,reach,taps_forward, taps_back"
+            self.metric = ["exits","impressions","reach","taps_forward","taps_back"]
         elif media_types == InstagramMediaTypes.CAROUSEL_ALBUM:
                 self.response_struct = InstagramCarouselMediaInsightsResponse
-                self.metric = "carousel_album_engagement,carousel_album_impressions,carousel_album_reach,carousel_album_saved,carousel_album_video_views"
+                self.metric = ["carousel_album_engagement","carousel_album_impressions","carousel_album_reach","carousel_album_saved","carousel_album_video_views"]
+        elif media_types == InstagramMediaTypes.VIDEO:
+            self.metric.append("video_views")
+        self.metric = ",".join(self.metric)
 
 class InstagramStoryMediaInsightsRequest(InstagramSingleMediaInsightsRequest):
     def __init__(self,ig_media_id: str, access_token: str, **kwargs) -> None:

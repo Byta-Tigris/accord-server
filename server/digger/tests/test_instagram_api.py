@@ -53,7 +53,7 @@ class TestInstagramAPI(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertGreater(len(response.data), 0)
         media_count = len(response.data)
-        medias: List[IGUser] = []
+        medias: List[IGMedia] = []
         medias += response.data
         while response.paging.has_after() and len(response.data) > 0:
             after = response.paging.after
@@ -62,6 +62,10 @@ class TestInstagramAPI(TestCase):
             media_count += len(response.data)
             medias += response.data
         media_ids = list(map(lambda media: media.id, medias))
+        for media in medias:
+            if media.media_type == InstagramMediaTypes.CAROUSEL_ALBUM:
+                self.assertNotEqual(media.children, None)
+                self.assertGreater(len(media.children), 0)
         self.assertTrue(self.ig_media_id in media_ids)
     
     def test_instagram_single_media_data_request(self) -> None:
@@ -78,6 +82,24 @@ class TestInstagramAPI(TestCase):
         self.assertNotEqual(response.status_code, 200)
         self.assertNotEqual(response.error, None)
         self.assertEqual(response.media, None)
+    
+    
+    def test_instagram_single_media_insight_request(self) -> None:
+        request = InstagramSingleMediaInsightsRequest(self.ig_media_id, self.access_token)
+        # breakpoint()
+        response: InstagramSingleMediaInsightResponse = request(self.req_manager)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.error, None)
+        self.assertNotEqual(response.insights, None)
+        self.assertGreater(response.insights.impressions, 0)
+
+        # Testing error
+        request = InstagramSingleMediaInsightsRequest(self.ig_media_id + "0", self.access_token)
+        response: InstagramSingleMediaInsightResponse = request(self.req_manager)
+        self.assertNotEqual(response.status_code, 200)
+        self.assertNotEqual(response.error, None)
+        self.assertEqual(response.insights, None)
+
         
 
 

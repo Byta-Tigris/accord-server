@@ -4,6 +4,21 @@ from typing import Any, Dict, List, Optional, Union
 
 
 
+class IGMediaDescription:
+
+    def __init__(self, id: str, media_url: str, media_type: str) -> None:
+        self.id = id
+        self.media_url = media_url
+        self.media_type = media_type
+    
+    @classmethod
+    def from_dict(cls, **kwargs):
+        return cls(**kwargs)
+    
+    def to_kwargs(self) -> Dict[str, str]:
+        return vars(self)
+        
+
 class IGMedia:
 
     def __init__(self,
@@ -13,7 +28,7 @@ class IGMedia:
                 media_type: str = InstagramMediaTypes.IMAGE, media_url: str = None,
                 owner: Dict[str, str] = None, permalink: str = None, shortcode: str = None,
                 thumbnail_url: str = None, timestamp: str = None, username: str = None,
-                video_title: str = None, **kwargs
+                video_title: str = None, children: Dict[str, List[Dict[str,str]]] = None, **kwargs
 
                 ) -> None:
         self.id = id
@@ -32,9 +47,25 @@ class IGMedia:
         self.timestamp = timestamp
         self.username = username
         self.video_title = video_title
+        self.children = None
+        if children != None:
+            if isinstance(children, dict) and "data" in children:
+                self.set_children_from_kwargs(children["data"])
+            elif isinstance(children, list):
+                self.set_children_from_kwargs(children)
+            
+    
+    def set_children_from_kwargs(self, children: List[Dict[str,str]]) -> None:
+        self.children: List[IGMediaDescription] = list(map(lambda data: IGMediaDescription.from_dict(**data), children))
+    
+    def set_children(self, children: List[IGMediaDescription]) -> None:
+        self.children = children
     
     def to_kwargs(self) -> Dict[str, Any]:
-        return vars(self)
+        data =  vars(self)
+        if "children" in data:
+            data["children"] = list(map(lambda media: media.to_kwargs(), data["children"]))
+        return data
 
 
 class PagingCursor:
@@ -109,10 +140,10 @@ class InstagramCarouselMediaMetrics(InstagramMediaMetrics):
 
     def __init__(self, carousel_album_engagement: int = 0, carousel_album_impressions: int = 0,
                         carousel_album_reach: int = 0, carousel_album_saved: int = 0,
-                        carousel_album_video_views: int = 0) -> None:
+                        video_views: int = 0) -> None:
         super().__init__(
             carousel_album_engagement, carousel_album_impressions,
-            carousel_album_reach, carousel_album_saved, carousel_album_video_views
+            carousel_album_reach, carousel_album_saved, video_views
         )
 
 

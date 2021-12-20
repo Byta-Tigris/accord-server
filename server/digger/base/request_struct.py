@@ -24,7 +24,7 @@ class RequestStruct(AbstractRequestStruct):
                 params[key] = value
             elif key in self.params_data:
                 data[key] = value
-            elif value is not None and key not in self.get_ignorable_fields():
+            elif value is not None and key not in self.get_ignorable_fields() and not value.startswith("__"):
                 variables[key]  = value
         if self.method == RequestMethod.Post:
             return (params, variables)
@@ -43,8 +43,12 @@ class RequestStruct(AbstractRequestStruct):
         var = self._get_params()
         return self.format_params(**var[0]), self.format_params(**var[1])
     
+    def process_after_request(self, manager: AbstractRequestManager, response: AbstractResponseStruct) -> AbstractResponseStruct:
+        return response
+    
     def __call__(self, manager: AbstractRequestManager, **extra_params) -> AbstractResponseStruct:
-        return manager.make_request(self, **extra_params)
+        response =  manager.make_request(self, **extra_params)
+        return self.process_after_request(manager, response)
         
     
     
