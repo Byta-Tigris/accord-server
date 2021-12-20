@@ -39,7 +39,6 @@ class BaseRequestManager(AbstractRequestManager):
             data = res.json()
             return request.response_struct.from_data(res.url, res.status_code, data)            
         except Exception as exc:
-            raise exc
             if settings.DEBUG:
                 raise exc
             else:

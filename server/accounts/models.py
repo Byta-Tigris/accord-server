@@ -257,6 +257,9 @@ class SocialMediaHandle(models.Model):
     username = models.CharField(max_length=70, default="")
     avatar = models.URLField(null=True, blank=True)
     is_publish_permission_valid = models.BooleanField(default=False)
+    follower_count = models.PositiveBigIntegerField(default=0)
+    media_count = models.PositiveIntegerField(default=0)
+    meta_data = models.JSONField(default=dict)
     rates = models.JSONField(default=dict)  # {"ad_name": {...data}}
 
 

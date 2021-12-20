@@ -30,7 +30,8 @@ def validate_password(password: str) -> bool:
 # DATE-MONTH-YEAR-HOUR-MINUTE-SECOND-MICROSECOND ---- UTC_OFFSET = 0
 # EG: 20-11-2021T07-09-44-915637 ;; ALL TIMES IN UTC
 DATE_TIME_FORMAT = "%d-%m-%YT%I:%M:%S"
-FACEBOOK_RESPONSE_DATE_TIME_FORMAT = "%Y-%m-%dT%I:%M:%S%z"
+FACEBOOK_RESPONSE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
+YOUTUBE_RESPONSE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 def get_current_time() -> datetime:
@@ -68,6 +69,22 @@ def get_handle_metrics_expire_time(time: datetime = get_current_time()) -> datet
 def get_datetime_from_facebook_response(time_str: str) -> datetime:
     return datetime.strptime(time_str, FACEBOOK_RESPONSE_DATE_TIME_FORMAT)
 
+def get_datetime_from_youtube_response(time_str: str) -> datetime:
+    return datetime.strptime(time_str, YOUTUBE_RESPONSE_DATE_TIME_FORMAT)
+
+def get_tag_from_youtube_topics(topic:str) -> str:
+    split_topic_url = topic.split("/")
+    topic_name = split_topic_url[-1]
+    split_topic_name = topic_name.split("_")
+    fresh_name = " ".join(split_topic_name)
+    return fresh_name.title()
+
+def get_desired_resolution_image_from_youtube_thumbnail_url(url: str, res: str) -> str:
+    record = {"high": "s800", "medium": "s240", "default": "s88"}
+    reses = ["s800", "s240", "s88"]
+    for resolution in reses:
+        if resolution in url:
+            return url.replace(resolution, record[res])
 
 def time_to_string(time: datetime) -> str:
     return time.strftime(DATE_TIME_FORMAT)
