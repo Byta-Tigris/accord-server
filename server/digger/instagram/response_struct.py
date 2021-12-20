@@ -97,8 +97,9 @@ class InstagramSingleMediaDataResponse(ResponseStruct):
 
     def __init__(self, url: str, status_code: int, **kwargs) -> None:
         self.error = None
+        self.media = None
         if "error" in kwargs:
-            self.error = kwargs["error"]
+            self.error = kwargs.get("error", {})
         else:
             self.media = IGMedia(**kwargs)
         super().__init__(url, status_code, **kwargs)

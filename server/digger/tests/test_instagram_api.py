@@ -63,6 +63,21 @@ class TestInstagramAPI(TestCase):
             medias += response.data
         media_ids = list(map(lambda media: media.id, medias))
         self.assertTrue(self.ig_media_id in media_ids)
+    
+    def test_instagram_single_media_data_request(self) -> None:
+        request = InstagramSingleMediaDataRequest(self.ig_media_id, self.access_token)
+        response: InstagramSingleMediaDataResponse = request(self.req_manager)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.error, None)
+        self.assertNotEqual(response.media, None)
+        self.assertEqual(response.media.id, self.ig_media_id)
+
+        ## Testing for error
+        request = InstagramSingleMediaDataRequest(self.ig_media_id + "0", self.access_token)
+        response = request(self.req_manager)
+        self.assertNotEqual(response.status_code, 200)
+        self.assertNotEqual(response.error, None)
+        self.assertEqual(response.media, None)
         
 
 

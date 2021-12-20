@@ -6,11 +6,11 @@ from digger.base.types import  AbstractResponseStruct
 
 
 class ResponseStruct(AbstractResponseStruct):
+    error = None
 
     def __init__(self, url: str, status_code: int, **kwargs) -> None:
         self.url = url
         self.status_code = status_code
-        self.error = None
     
     def has_error(self) -> bool:
         return self.error != None
