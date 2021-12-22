@@ -24,8 +24,8 @@ class BaseRequestManager(AbstractRequestManager):
         res: requests.Response = None
         url: str = None
         _headers: Dict = None
-        if request.headers:
-            _headers = request.headers
+        if request.get_headers():
+            _headers = request.get_headers()
         if self.headers:
             _headers |= self.headers
         try:

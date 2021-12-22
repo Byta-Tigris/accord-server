@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 from typing_extensions import Self
 
 
@@ -23,6 +23,9 @@ class AbstractRequestStruct:
     headers: Dict = None
     method: str = None
     status_code = 200
+
+    def get_headers(self) -> Union[None,Dict[str, str]]:
+        return self.headers
 
     def get_ignorable_fields(self) -> List[str]:
         return self.ignorable_fields + self._ignored_fields

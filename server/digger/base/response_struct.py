@@ -14,7 +14,8 @@ class ResponseStruct(AbstractResponseStruct):
     
     def has_error(self) -> bool:
         return self.error != None
-
+    
+    
 
     @staticmethod
     def process_data(kwargs: Union[Dict, List, str]) -> Dict:

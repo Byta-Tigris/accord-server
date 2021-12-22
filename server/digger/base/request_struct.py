@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 from digger.base.types import AbstractRequestManager, AbstractRequestStruct, AbstractResponseStruct
 from utils.types import RequestMethod
 
@@ -32,6 +32,9 @@ class RequestStruct(AbstractRequestStruct):
 
     def format_params(self, **params) -> Dict[str, Any]:
         return params
+    
+    
+
     
     def get_params(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """

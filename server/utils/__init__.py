@@ -32,6 +32,7 @@ def validate_password(password: str) -> bool:
 DATE_TIME_FORMAT = "%d-%m-%YT%I:%M:%S"
 FACEBOOK_RESPONSE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 YOUTUBE_RESPONSE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+YOUTUBE_RESPONSE_DATE_FORMAT = "%Y-%m-%d"
 
 
 def get_current_time() -> datetime:
