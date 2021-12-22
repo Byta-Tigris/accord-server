@@ -91,3 +91,6 @@ class YoutubeDemographicsChannelReportResponse(YoutubeChannelReportResponse):
 
 class YoutubeSharingServiceChannelReportResponse(YoutubeChannelReportResponse):
     pass
+
+class YoutubeAudienceRetentionVideoReportResponse(YoutubeChannelVideoListResponse):
+    pass

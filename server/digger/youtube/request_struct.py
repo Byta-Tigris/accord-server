@@ -76,15 +76,19 @@ class YoutubeChannelListRequest(YoutubeAuthorizedRequest):
 
 
 class YoutubeChannelVideoListRequest(YoutubeAuthorizedRequest):
+    """
+    
+    """
     endpoint = "/search"
     method = RequestMethod.Get
     response_struct = YoutubeChannelVideoListResponse
 
-    def __init__(self, access_token: str) -> None:
+    def __init__(self, access_token: str, max_results: int = 10) -> None:
         self.access_token = access_token
         self.part = "snippet"
         self.forMine = True
-        self.maxResults = 25
+        self.maxResults = max_results
+        self.order = "date"
         self.type = "video"
         super().__init__()
 
@@ -136,7 +140,7 @@ class YoutubeSubscriptionBasedChannelReportRequest(YoutubeChannelReportRequest):
 class YoutubeTimeBasedChannelReportRequest(YoutubeChannelReportRequest):
     response_struct = YoutubeTimeBasedChannelReportResponse
 
-    def __init__(self, access_token: str, end_date: datetime = get_current_time(), start_date: datetime = None) -> None:
+    def __init__(self, access_token: str, end_date: datetime = get_current_time(), start_date: datetime = None, video_id: str = None) -> None:
         super().__init__(access_token, end_date=end_date, start_date=start_date)
         self.dimesions = "day"
         self.sort = "day"
@@ -147,16 +151,35 @@ class YoutubeTimeBasedChannelReportRequest(YoutubeChannelReportRequest):
                                  "annotationClickableImpressions", "annotationClosableImpressions", "annotationClicks",
                                  "annotationCloses", "cardClickRate", "cardTeaserClickRate", "cardImpressions", "cardTeaserImpressions",
                                  "cardClicks", "cardTeaserClicks", "subscribersGained", "subscribersLost"])
+        if video_id:
+            self.filters = f"video=={video_id}"
 
 
 class YoutubeDemographicsChannelReportRequest(YoutubeChannelReportRequest):
     response_struct = YoutubeDemographicsChannelReportResponse
 
-    def __init__(self, access_token: str, end_date: datetime = get_current_time(), start_date: datetime = None) -> None:
+    def __init__(self, access_token: str, end_date: datetime = get_current_time(), start_date: datetime = None,video_id: str = None) -> None:
         super().__init__(access_token, end_date=end_date, start_date=start_date)
         self.dimensions = "ageGroup,gender"
         self.metrics = "viewerPercentage"
+        if video_id:
+            self.filters = f"video=={video_id}"
 
 
-class YoutubeharingServiceChannelReportRequest(YoutubeChannelReportRequest):
+class YoutubeSharingServiceChannelReportRequest(YoutubeChannelReportRequest):
     response_struct = YoutubeSharingServiceChannelReportResponse
+    def __init__(self, access_token: str, end_date: datetime = get_current_time(), start_date: datetime = None, video_id: str = None) -> None:
+        super().__init__(access_token, end_date=end_date, start_date=start_date)
+        self.dimensions = "sharingService,subscribedStatus"
+        self.metrics = "shares"
+        if video_id:
+            self.filters = f"video=={video_id}"
+
+class YoutubeAudienceRetentionVideoReportRequest(YoutubeChannelReportRequest):
+    response_struct = YoutubeAudienceRetentionVideoReportResponse
+
+    def __init__(self, access_token, video_id, published_on: datetime, end_date: datetime = get_current_time()) -> None:
+        super().__init__(access_token, end_date=end_date, start_date=published_on)
+        self.dimension = "elapsedVideoTimeRatio"
+        self.metrics = "audienceWatchRatio,relativeRetentionPerformance"
+        self.filters = f"video=={video_id}"
