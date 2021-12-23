@@ -18,6 +18,14 @@ SCOPES:
 
 
 class YoutubeExchangeCodeForTokenRequest(RequestStruct):
+    """
+    Exchanges code for token, youtube always provide only short-living token\n
+    along with a refresh token. We'll need to refresh our access token before every user session.\n
+
+    Keyword Arguments: \n
+    code -- Authorization code returned after authroization flow\n
+    redirect_uri -- Sent by the client, registered on GCP\n
+    """
 
     endpoint = "/token"
     method = RequestMethod.Post
@@ -64,6 +72,13 @@ class YoutubeAuthorizedAnalyticsRequest(YoutubeAuthorizedRequest):
 
 
 class YoutubeChannelListRequest(YoutubeAuthorizedRequest):
+    """
+    Returns all channels related with the provided access_token\n
+    Channels will be mapped into the database as the SocialMediaHandle\n
+
+    KeywordArguments:\n
+    access_token -- Channel access token \n
+    """
     endpoint = "/channels"
     method = RequestMethod.Get
     response_struct = YoutubeChannelListResponse
@@ -77,6 +92,18 @@ class YoutubeChannelListRequest(YoutubeAuthorizedRequest):
 
 class YoutubeChannelVideoListRequest(YoutubeAuthorizedRequest):
     """
+    Returns list video data uploaded by the channel related with the access_tokens\n
+    On default, it will return 10 videos ordered by latest to oldest sequence\n
+    This request only holds tendeancy to return snippet of video, i.e detaills\n
+    such as title, description, etc.
+
+    We need to use seperate request for querying other data such as statistics,\n
+    topicDetails, status.\n
+
+    Keyword Arguments:\n
+    access_token -- Channel Access token\n
+    max_results -- Maximum number of videos required [default=10]\n
+
     
     """
     endpoint = "/search"
@@ -94,6 +121,14 @@ class YoutubeChannelVideoListRequest(YoutubeAuthorizedRequest):
 
 
 class YoutubeMultipleVideoDataRequest(YoutubeAuthorizedRequest):
+    """
+    Returns snippet,statistics, topicDetails, status of the provides video ids\n
+    These data will be updated to each YTMedia object\n
+
+    Keyword Arguments:\n
+    access_token -- Channel Access token
+    video_ids -- List of video ids
+    """
     endpoint = '/video'
     method = RequestMethod.Get
     response_struct = YoutubeMultipleVideoDataResponse

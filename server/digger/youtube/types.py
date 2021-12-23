@@ -1,8 +1,8 @@
 from datetime import datetime
 import string
-from typing import Dict, List, Union
-
-from utils import DATE_TIME_FORMAT, YOUTUBE_RESPONSE_DATE_FORMAT, get_datetime_from_youtube_response, get_tag_from_youtube_topics
+from typing import Any, Dict, List, Union
+import pandas as pd
+from utils import YOUTUBE_RESPONSE_DATE_FORMAT, get_datetime_from_youtube_response, get_tag_from_youtube_topics
 
 
 class YTChannel:
@@ -147,12 +147,110 @@ class YTMetrics:
                 argument = getattr(self, argument_name, None)
                 if argument == None:
                     argument = []
+                meta["metric"] = argument_name
                 meta["value"] = datapoint
                 argument.append(meta)
                 setattr(self, argument_name, argument)
 
 
 
+
+class MetricRecord(object):
+
+    def __init__(self, key_name: str, value_name: str, dimensions: List[str]) -> None:
+        self.key_name = key_name
+        self.value_name = value_name
+        self.dimensions = dimensions
+        self.columns = self.dimensions + [self.key_name, self.value_name]
+        self._df = pd.DataFrame([], columns=self.columns)
+        self._data = {}
+    
+    def convert_kwargs_to_row(self, **kwargs) -> List:
+        data = []
+        for dimension_name in self.columns:
+            data.append(kwargs[dimension_name])
+        return data
+    
+    def add_data_to_df(self, **kwargs) -> None:
+        row = self.convert_kwargs_to_row(**kwargs)
+        self._df.loc[len(self._df.index)] = row
+    
+    @property
+    def df(self) -> pd.DataFrame:
+        return self._df
+    
+
+    def format_kwarg(self, **kwargs) -> Dict:
+        data = {kwargs[self.key_name]: kwargs[self.value_name]}
+        for dimension_name in reversed(self.dimensions):
+            data = {kwargs[dimension_name]: data}
+        return data
+    
+    
+    def _add(self, **kwargs) -> Dict:
+        traced_path = []
+        traced_data = []
+        data = self._data
+        prototype_data = self.format_kwarg(**kwargs)
+        for dimension_name in self.dimensions:
+            if dimension_name in kwargs and kwargs[dimension_name] in data:
+                traced_path.append(kwargs[dimension_name])
+                traced_data.append(data[kwargs[dimension_name]])
+                data = data[kwargs[dimension_name]]
+                prototype_data = prototype_data[kwargs[dimension_name]]
+        data = prototype_data
+        for i, _d in enumerate(reversed(traced_data)):
+            index = len(traced_data) - (i +1)
+            data = {traced_path[index]: _d | data}
+        return data
+    
+    def add(self,in_df: bool = False, **kwargs) -> None:
+        self._data |= self._add(**kwargs)
+        if in_df:
+            self.add_data_to_df(**kwargs)
+    
+    @property
+    def data(self) -> Dict:
+        return self._data
+    
+    def __contains__(self, name: str) -> bool:
+        data = self._data
+        for chunk in name.split("__"):
+            if data != None and chunk in data:
+                data = data.get(chunk, None)
+            else:
+                return False
+        return True
+        
+    
+    def __getitem__(self, items) -> Dict:
+        if isinstance(items, (list, tuple)):
+            return self.get("__".join(items))
+        return self.get(items)
+    
+    def get(self, name:str) -> Any:
+        data = self._data
+        visited_chunk = []
+        for chunk in name.split("__"):
+            visited_chunk.append(chunk)
+            if data != None and  chunk in data and  (value := data.get(chunk, None)) != None:
+                data = value
+            else:
+                raise KeyError(f"{'__'.join(visited_chunk)} does not exists")
+        return data
+
+    
+
+
+
+
+
+
+        
+
+        
+
+        
             
 
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 from unittest import TestCase
 
-from digger.youtube.types import YTMetrics
+from digger.youtube.types import MetricRecord, YTMetrics
 from utils import YOUTUBE_RESPONSE_DATE_FORMAT
 
 
@@ -169,3 +169,105 @@ class TestYTMetric(TestCase):
         self.assertEqual(time_based_metric.average_view_duration[1]["value"], 44)
 
  
+class TestMetricRecord(TestCase):
+
+    age_gender_fixtures = [
+        {
+            "day": "2020-10-07",
+            "gender": "M",
+            "metric": "age18_24",
+            "value": 0.33
+        },
+        {
+            "day": "2020-10-07",
+            "gender": "M",
+            "metric": "age24_36",
+            "value": 0.68
+        },
+        {
+            "day": "2020-10-07",
+            "gender": "F",
+            "metric": "age18_24",
+            "value": 0.33
+        },
+        {
+            "day": "2020-10-08",
+            "gender": "M",
+            "metric": "age18_24",
+            "value": 0.33
+        },
+    ]
+
+    subscribed_metrics_fixture = [
+        {
+            "day": "2020-10-07",
+            "metric": "UNSUBSCRIBED",
+            "value": 26
+        },
+        {
+            "day": "2020-10-07",
+            "metric": "SUBSCRIBED",
+            "value": 28
+        },
+        {
+            "day": "2020-10-07",
+            "metric": "TOTAL",
+            "value": 28
+        },
+        {
+            "day": "2020-10-07",
+            "metric": "UNSUBSCRIBED",
+            "value": 29
+        },
+        {
+            "day": "2020-10-08",
+            "metric": "UNSUBSCRIBED",
+            "value": 36
+        },
+        {
+            "day": "2020-10-07",
+            "metric": "SUBSCRIBED",
+            "value": 26
+        },
+    ]
+
+
+    def test_add(self) -> None:
+        
+        ## Testing subscribed_metrics_fixture
+        subs_metric_record = MetricRecord(
+            "metric", "value", ["day"]
+        )
+        
+        for fixture in self.subscribed_metrics_fixture:
+            subs_metric_record.add(**fixture)
+            self.assertTrue(fixture["day"] in subs_metric_record)
+            self.assertTrue(fixture["metric"] in subs_metric_record[fixture["day"]])
+            self.assertEqual(subs_metric_record[fixture["day"]][fixture["metric"]], fixture["value"])
+            self.assertTrue(f"{fixture['day']}__{fixture['metric']}" in subs_metric_record)
+            self.assertEqual(subs_metric_record.get(f"{fixture['day']}__{fixture['metric']}"), fixture['value'])
+        
+        ## Testing age gender_metric_fixture
+        age_gender_record = MetricRecord("metric", "value", ["day", "gender"])
+        for fixture in self.age_gender_fixtures:
+            age_gender_record.add(**fixture)
+            self.assertTrue(fixture["day"] in age_gender_record)
+            self.assertTrue(fixture["gender"] in age_gender_record[fixture["day"]])
+            self.assertEqual(fixture["metric"] in age_gender_record[fixture["day"], fixture["gender"]], True)
+            self.assertEqual(age_gender_record[fixture["day"], fixture["gender"], fixture["metric"]], fixture["value"])
+        
+            
+
+    def test_convert_kwargs_to_row(self) -> None:
+        subs_metric_record = MetricRecord(
+            "metric", "value", ["day"]
+        )
+        for fix in self.subscribed_metrics_fixture:
+            self.assertListEqual([fix["day"], fix["metric"], fix["value"]], subs_metric_record.convert_kwargs_to_row(**fix))
+
+    def test_add_data_to_df(self) -> None:
+        age_gender_record = MetricRecord("metric", "value", ["day", "gender"])
+        for fixture in self.age_gender_fixtures:
+            age_gender_record.add(in_df=True,**fixture)
+        d = age_gender_record.df[age_gender_record.df.gender == "M"]
+        self.assertGreater(len(d), 2)

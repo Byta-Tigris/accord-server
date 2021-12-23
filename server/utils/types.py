@@ -46,6 +46,12 @@ class RequestMethod:
     Post = "POST"
 
 
+class YTSubscribtionStatus:
+    UNSUBSCRIBED = "UNSUBSCRIBED"
+    SUBSCRIBED = "SUBSCRIBED"
+
+
+
 class MetricData:
     pass
 
