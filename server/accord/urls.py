@@ -25,5 +25,5 @@ urlpatterns = [
     path("payment/", include("payment.urls")),
     path("content_manager/", include("content_manager.urls")),
     path("sacred_logs/", include("log_engine.urls")),
-    path("tree/", include('linktree.urls'))
+    path("wall/", include('linktree.urls'))
 ]
