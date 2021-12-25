@@ -13,7 +13,7 @@ class InstagramDigger:
     def __init__(self) -> None:
         self.req_manager = InstagramRequestManager()
     
-    def get_long_live_token(self, short_live_access_token: str) -> FacebookLongLiveTokenResponse:
+    def get_long_lived_token(self, short_live_access_token: str) -> FacebookLongLiveTokenResponse:
         request = FacebookLongLiveTokenRequest(short_live_access_token)
         response_token_exchange: FacebookLongLiveTokenResponse = request(self.req_manager)
         return response_token_exchange

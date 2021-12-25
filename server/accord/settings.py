@@ -73,7 +73,8 @@ INSTALLED_APPS = [
     'biddings.apps.BiddingsConfig',
     'log_engine.apps.LogEngineConfig',
     'payment.apps.PaymentConfig',
-    'content_manager.apps.ContentManagerConfig'
+    'content_manager.apps.ContentManagerConfig',
+    'linktree.apps.LinkTreeConfig'
 ]
 
 MIDDLEWARE = [

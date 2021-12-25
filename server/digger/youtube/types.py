@@ -147,7 +147,6 @@ class YTMetrics:
                 argument = getattr(self, argument_name, None)
                 if argument == None:
                     argument = []
-                meta["metric"] = argument_name
                 meta["value"] = datapoint
                 argument.append(meta)
                 setattr(self, argument_name, argument)
@@ -156,6 +155,32 @@ class YTMetrics:
 
 
 class MetricRecord(object):
+
+    """
+    Dict based Datastructure to contain record of data inside a record
+
+    MetricRecord({
+        "day_1": {
+            "M": {
+                "age18_24": 0.38,
+                "age36-50": 0.36
+            },
+            "F": {
+                "age36_50": 0.8
+            }
+        },
+        "day_2": {
+            "F": {
+                "age18_24": 0.5
+            }
+        }
+    })
+    Thus the weeky metric [JSOnField] will store these data making it easy to query and update
+    for e.g 
+        - '2020-10-07__M__age18_24' will return 0.38 
+        - '2020-10-07__F' will return {"age36_50": 0.8}
+
+    """
 
     def __init__(self, key_name: str, value_name: str, dimensions: List[str]) -> None:
         self.key_name = key_name
@@ -242,6 +267,10 @@ class MetricRecord(object):
     
 
 
+class YTMetricRecord(MetricRecord):
+    
+    def __init__(self, key_name = "metric", value_name = "value", dimensions = ["day"]) -> None:
+        super().__init__(key_name, value_name, dimensions)
 
 
 

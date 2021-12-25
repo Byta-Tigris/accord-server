@@ -404,6 +404,8 @@ class SocialMediaHandleMetrics(models.Model):
 
 
 
+
+
 class InstagramHandleMetrics(SocialMediaHandleMetrics):
     platform = models.CharField(default=Platform.Instagram, max_length=10)
     reach_data = JSONField(default=dict)
@@ -485,6 +487,8 @@ class YoutubeHandleMetrics(SocialMediaHandleMetrics):
 
 
 
+class PlatformMetricModel(models.Model): pass
 
+class CreatorMetricModel(models.Model): pass
     
 
