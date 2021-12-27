@@ -74,7 +74,8 @@ INSTALLED_APPS = [
     'log_engine.apps.LogEngineConfig',
     'payment.apps.PaymentConfig',
     'content_manager.apps.ContentManagerConfig',
-    'linktree.apps.LinkTreeConfig'
+    'linktree.apps.LinktreeConfig',
+    'insights.apps.InsightsConfig'
 ]
 
 MIDDLEWARE = [

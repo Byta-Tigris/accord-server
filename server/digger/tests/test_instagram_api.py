@@ -38,6 +38,8 @@ class TestInstagramAPI(TestCase):
         self.assertTrue("Santipur, West Bengal" in list(response.audience_city.values())[0])
         self.assertTrue("F.18-24" in list(response.audience_gender_age.values())[0])
         self.assertGreaterEqual(list(response.audience_gender_age.values())[0]["F.18-24"], 7)
+        # print(response)
+        # self.assertTrue(False)
     
     def test_instagram_account_insights_request(self) -> None:
         request = InstagramUserInsightsRequest(self.ig_user_id, self.access_token)

@@ -21,9 +21,9 @@ urlpatterns = [
     path("accounts/", include("accounts.urls")),
     path("biddings/", include("biddings.urls")),
     path("campaigns/", include("campaigns.urls")),
-    path("cppm/", include("cppm.urls")),
     path("payment/", include("payment.urls")),
     path("content_manager/", include("content_manager.urls")),
     path("sacred_logs/", include("log_engine.urls")),
-    path("wall/", include('linktree.urls'))
+    path("wall/", include('linktree.urls')),
+    path("insights/", include("insights.urls"))
 ]

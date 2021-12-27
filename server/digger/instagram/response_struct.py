@@ -74,6 +74,7 @@ class InstagramUserInsightsResponse(ResponseStruct):
         self.impressions: Dict[str, int] = {}
         self.reach: Dict[str, int] = {}
         self.follower_count: Dict[str, int] = {}
+        self.profile_views: Dict[str, int] = {}
         for insight in data:
             if "name" in insight and "values" in insight and len(insight["values"]) > 0:
                 value = insight["values"][0]

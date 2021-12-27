@@ -1,6 +1,7 @@
-from typing import Any, Dict, List, Union, TypeVar
+from typing import Any, Dict, List, Type, Union, TypeVar
 from typing_extensions import Self
-from accounts.models import Account, CreatorMetricModel, PlatformMetricModel, SocialMediaHandle, SocialMediaHandleMetrics
+from accounts.models import Account, SocialMediaHandle
+from insights.models import CreatorMetricModel, SocialMediaHandleMetrics, PlatformMetricModel
 
 
 
@@ -44,7 +45,7 @@ class AbstractDigger:
     pass
 
 
-LongLiveTokenResponse = TypeVar('LongLiveTokenResponse', AbstractRequestStruct)
+LongLiveTokenResponse = type(AbstractResponseStruct)
 
 class Digger(AbstractDigger):
 
