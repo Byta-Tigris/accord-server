@@ -101,8 +101,8 @@ class IGUser:
     username: Optional[str] = None
     id: Optional[str] = None
     ig_id: Optional[int] = None
-    name: Optional[str] = None
-    biography: Optional[str] = None
+    name: Optional[str] = ""
+    biography: Optional[str] = ""
     followers_count: Optional[int] = 0
     profile_picture_url: Optional[str] = ""
     media_count: Optional[int] = 0

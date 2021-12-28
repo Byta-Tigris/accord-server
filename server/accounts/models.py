@@ -10,13 +10,14 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.query_utils import Q
 from django.db.models import JSONField
+from digger.instagram.types import IGUser
 
 
 ################# Project Built-in imports ###################
 from utils import account_id_generator, get_current_time, get_handle_metrics_expire_time, time_to_string, validate_password
 from django.core.validators import validate_email
 from utils.ad_data import AdRate
-from utils.errors import AccountAlreadyExists, UserAlreadyExists
+from utils.errors import AccountAlreadyExists
 from utils.types import *
 
 ################# Third-party imports ########################
@@ -275,8 +276,9 @@ class SocialMediaHandle(models.Model):
     def add_rate(self, ad_rate: AdRate) -> None:
         self.rates[ad_rate.ad_name] = ad_rate.serialize()
     
-    def get_token_expiration_datetime(self, seconds: int, time: datetime = get_current_time()):
-        self.token_expiration_time = get_current_time() + timedelta(seconds=seconds)
+    @staticmethod
+    def get_token_expiration_datetime(seconds: int, time: datetime = get_current_time()) -> datetime:
+        return get_current_time() + timedelta(seconds=seconds)
     
     def _set_access_token(self, value: str, token_expiration_time: int, refresh_token: str = None) -> None:
         self.access_token = value
@@ -316,6 +318,29 @@ class SocialMediaHandle(models.Model):
         """Returns true if token is still valid"""
         now = datetime.now()
         return now < self.token_expiration_time
+    
+    @classmethod
+    def from_ig_user_data(cls, account: Account, ig_user: IGUser) -> 'SocialMediaHandle':
+        model = cls(
+            platform=Platform.Instagram,
+            account=account,
+            handle_uid=ig_user.id,
+            handle_url=f"https://www.instagram.com/{ig_user.username}/",
+            is_refresh_token_dependent=False,
+            last_date_time_of_token_user=get_current_time(),
+            created_on=get_current_time(),
+            username=ig_user.username,
+            avatar=ig_user.profile_picture_url,
+            follower_count=ig_user.followers_count,
+            media_count=ig_user.media_count,
+            is_publish_permission_valid=True,
+            meta_data={
+                "name": ig_user.name,
+                "description": ig_user.biography
+            }
+
+        )
+        return model
 
 
 

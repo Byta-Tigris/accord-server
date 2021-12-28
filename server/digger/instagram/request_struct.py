@@ -27,7 +27,7 @@ class FacebookLongLiveTokenRequest(RequestStruct):
         self.client_id = get_secret("FACEBOOK_CLIENT_ID")
 
 
-class FaceboolPageAccountsRequest(RequestStruct):
+class FacebookPageAccountsRequest(RequestStruct):
     """
     Retrieves all fb pages related with the account\n
     The page will contain all the instagram_business_accounts and their data if connected\n

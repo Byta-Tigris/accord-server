@@ -92,7 +92,7 @@ class Digger(AbstractDigger):
         """
         pass
 
-    def resync_social_media_handles(self, account: Account) -> List[SocialMediaHandle]:
+    def resync_social_media_handles(self, account: Account, acess_token: str = None) -> List[SocialMediaHandle]:
         """
         Resync all the social media handles if such functionality is supported\n
         """

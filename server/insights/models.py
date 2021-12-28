@@ -76,6 +76,10 @@ class InstagramHandleMetricModel(SocialMediaHandleMetrics):
     profile_views = models.JSONField(default=dict)
 
     objects = InstagramHandleMetricsManager()
+    update_fields = ['follower_count' ,'media_count', 'impressions',
+                    'reach', 'audience_city', 'audience_gender_age',"audience_country",
+                    "profile_views"
+                    ]
 
 
     def set_metrics_from_user_insight_response(self, response: InstagramUserInsightsResponse) -> None:
@@ -89,8 +93,8 @@ class InstagramHandleMetricModel(SocialMediaHandleMetrics):
         self.audience_gender_age |= response.audience_gender_age
         self.audience_country |= response.audience_country
 
-
-    def merge_metric(self, metrics: Dict[str, Dict[str, int]]) -> Dict[str, Union[int, float]]:
+    @staticmethod
+    def merge_metric(metrics: Dict[str, Dict[str, int]]) -> Dict[str, Union[int, float]]:
         data = {}
         for metric in metrics.values():
             for key, value in metric.items():
@@ -112,7 +116,15 @@ class InstagramHandleMetricModel(SocialMediaHandleMetrics):
 
 
 
-class YoutubeHandleMetricModel(SocialMediaHandleMetrics): 
+class YoutubeHandleMetricModel(SocialMediaHandleMetrics):
+
+    subscribed_status_fields = ["views", "likes", "dislikes", "shares", "estimated_minutes_watched", 
+                                "average_view_duration", "average_view_percentage", "annotation_click_through_rate", 
+                                "annotation_close_rate", "annotation_impressions", "annotation_clickable_impressions", 
+                                "annotation_closable_impressions", "annotation_clicks", "annotation_closes", "card_click_rate", 
+                                "card_teaser_click_rate", "card_impressions", "card_teaser_impressions", "card_clicks", "card_teaser_clicks"
+]
+
     """
     Manages Youtube handle metric data for a week
 
@@ -123,14 +135,51 @@ class YoutubeHandleMetricModel(SocialMediaHandleMetrics):
     likes = models.JSONField(default=dict)
     dislikes = models.JSONField(default=dict)
     shares = models.JSONField(default=dict)
+    estimated_minutes_watched = models.JSONField(default=dict)
+    average_view_duration = models.JSONField(default=dict)
+    subscriber_gained = models.JSONField(default=dict)
+    subscriber_lost = models.JSONField(default=dict)
+    viewer_percentage = models.JSONField(default=dict)
+    audience_watch_ratio = models.JSONField(default=dict)
+    relative_retention_performance = models.JSONField(default=dict)
+    card_impressions = models.JSONField(default=dict)
+    card_clicks = models.JSONField(default=dict)
+    card_click_rate = models.JSONField(default=dict)
+    card_teaser_impressions = models.JSONField(default=dict)
+    card_teaser_clicks = models.JSONField(default=dict)
+    card_teaser_click_rate = models.JSONField(default=dict)
+    annotation_impressions = models.JSONField(default=dict)
+    annotation_clickable_impressions = models.JSONField(default=dict)
+    annotation_clicks = models.JSONField(default=dict)
+    annotation_click_through_rate = models.JSONField(default=dict)
+    annotation_closable_impressions = models.JSONField(default=dict)
+    annotation_closes = models.JSONField(default=dict)
+    annotation_close_rate = models.JSONField(default=dict)
+    positive_engagement = models.JSONField(default=dict)
+    negative_engagement = models.JSONField(default=dict)
+    engagement = models.JSONField(default=dict)
+    
             
 
 
-class CreatorMetricModel(models.Model): 
+class CreatorMetricModel: 
     """
     Manages Creators overall metric data for a week
     """
     ...
+
+
+class InstagramPlalformMetric(CreatorMetricModel):
+    
+    def __init__(self, follower_count: int, media_count: int, impressions: int, reach: int, profile_views: int, audience_city: Dict[str, int], audience_gender_age: Dict[str, int], audience_country: Dict[str, int]) -> None:
+        self.follower_count = follower_count
+        self.media_count = media_count
+        self.impressions = impressions
+        self.reach = reach
+        self.profile_views = profile_views
+        self.audience_city = audience_city
+        self.audience_gender_age = audience_gender_age
+        self.audience_country = audience_country
 
 
 class PlatformMetricModel: 

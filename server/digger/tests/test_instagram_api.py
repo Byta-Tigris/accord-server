@@ -14,7 +14,7 @@ class TestInstagramAPI(TestCase):
         self.media_count = 0
     
     def test_page_accounts_request(self) -> None:
-        request = FaceboolPageAccountsRequest(self.access_token)
+        request = FacebookPageAccountsRequest(self.access_token)
         response: FacebookPagesAccountsResponse = request(self.req_manager)
         self.assertEqual(response.status_code, 200)
         self.assertGreater(len(response.pages), 0)
