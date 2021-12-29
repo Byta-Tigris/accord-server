@@ -11,10 +11,11 @@ from django.db import models
 from django.db.models.query_utils import Q
 from django.db.models import JSONField
 from digger.instagram.types import IGUser
+from digger.youtube.types import YTChannel
 
 
 ################# Project Built-in imports ###################
-from utils import account_id_generator, get_current_time, get_handle_metrics_expire_time, time_to_string, validate_password
+from utils import YOUTUBE_RESPONSE_DATE_FORMAT, account_id_generator, get_current_time, validate_password
 from django.core.validators import validate_email
 from utils.ad_data import AdRate
 from utils.errors import AccountAlreadyExists
@@ -339,6 +340,27 @@ class SocialMediaHandle(models.Model):
                 "description": ig_user.biography
             }
 
+        )
+        return model
+    
+    @classmethod
+    def from_yt_channel(cls, account: Account, yt_channel: YTChannel) -> 'SocialMediaHandle':
+        meta_data = yt_channel.meta_data
+        if hasattr(yt_channel, "published_at"):
+            meta_data["published_at"] = yt_channel.created_on.strftime(YOUTUBE_RESPONSE_DATE_FORMAT)
+        
+        model = cls(
+            platform=Platform.Youtube,
+            account=account,
+            handle_url=f"https://www.youtube.com/channel/{yt_channel.id}",
+            handle_uid=yt_channel.id,
+            created_on=get_current_time(),
+            username=getattr(yt_channel, "title", ""),
+            avatar=getattr(yt_channel, "thumbnails", ""),
+            follower_count=getattr(yt_channel, "follower_count", 0),
+            media_count=getattr(yt_channel, "media_count", 0),
+            is_publish_permission_valid=True,
+            meta_data=meta_data
         )
         return model
 

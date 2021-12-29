@@ -45,6 +45,7 @@ class TestYTMetric(TestCase):
                 ]
             ],
             }
+        # breakpoint()
         sharing_metric = YTMetrics(sharing_service_fixture["columnHeaders"], sharing_service_fixture["rows"])
         self.assertNotEqual(sharing_metric.shares,None)
         self.assertGreater(len(sharing_metric.shares), 0)
@@ -52,6 +53,8 @@ class TestYTMetric(TestCase):
         self.assertTrue("sharing_service" in sharing_metric.shares[0])
         self.assertEqual(sharing_metric.shares[0]["sharing_service"],"WHATS_APP" )
         self.assertEqual(sharing_metric.shares[2]["value"], 8)
+
+
         
         subscribed_status_fixture = {
                 "columnHeaders": [
@@ -112,6 +115,7 @@ class TestYTMetric(TestCase):
                     ]
                 ]
             }
+        # breakpoint()
         subscribed_metric = YTMetrics(subscribed_status_fixture["columnHeaders"], subscribed_status_fixture["rows"])
         self.assertNotEqual(subscribed_metric.views, None)
         self.assertNotEqual(subscribed_metric.estimated_minutes_watched, None)
@@ -162,6 +166,7 @@ class TestYTMetric(TestCase):
                     ]
                 ]
             }
+        # breakpoint()
         time_based_metric = YTMetrics(time_based_fixture["columnHeaders"], time_based_fixture["rows"])
         self.assertNotEqual(time_based_metric.views, None)
         self.assertTrue("day" in time_based_metric.estimated_minutes_watched[0])

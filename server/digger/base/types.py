@@ -54,7 +54,7 @@ class Digger(AbstractDigger):
     Each Platform will have their own digger class.
     """
 
-    def exchange_code_for_token(self, account: Account , code: str, redirect_uri: str) -> None:
+    def exchange_code_for_token(self, code: str, redirect_uri: str) -> AbstractResponseStruct:
         """
         After the successfull authorization flow, client-side will retrieve the code\n
         The code coupled with the redirect_uri will call Request to retrieve short-lived token\n
@@ -92,7 +92,7 @@ class Digger(AbstractDigger):
         """
         pass
 
-    def resync_social_media_handles(self, account: Account, acess_token: str = None) -> List[SocialMediaHandle]:
+    def resync_social_media_handles(self, account: Account, access_token: str = None) -> List[SocialMediaHandle]:
         """
         Resync all the social media handles if such functionality is supported\n
         """

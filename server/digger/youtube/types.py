@@ -2,7 +2,7 @@ from datetime import datetime
 import string
 from typing import Any, Dict, List, Union
 import pandas as pd
-from utils import YOUTUBE_RESPONSE_DATE_FORMAT, get_datetime_from_youtube_response, get_tag_from_youtube_topics
+from utils import YOUTUBE_RESPONSE_DATE_FORMAT, get_datetime_from_youtube_response, get_tag_from_youtube_topics, time_to_string
 
 
 class YTChannel:
@@ -82,76 +82,6 @@ class YTVideo:
             for topic in topicDetails["topicCategories"]:
                 self.tags.append(get_tag_from_youtube_topics(topic))
             self.meta_data["tags"] = self.tags
-
-
-class YTMetrics:
-
-    DATE_TIME_FORMAT = YOUTUBE_RESPONSE_DATE_FORMAT
-
-    def __init__(self, columnHeaders: List[Dict[str,str]], rows: List[List]) -> None:
-        self.views = None
-        self.comments = None
-        self.likes = None
-        self.dislikes = None
-        self.shares = None
-        self.estimated_minutes_watched = None
-        self.average_view_duration = None
-        self.average_view_percentage = None
-        self.subscribers_gained = None
-        self.subscribers_lost = None
-        self.viewer_percentage = None
-        self.audience_watch_ratio = None
-        self.relative_retention_performance = None
-        self.card_impressions = None
-        self.card_clicks = None
-        self.card_click_rate = None
-        self.card_teaser_impressions = None
-        self.card_teaser_clicks = None
-        self.card_teaser_click_rate = None
-        self.annotation_impressions = None
-        self.annotation_clickable_impressions = None
-        self.annotation_clicks = None
-        self.annotation_click_through_rate = None
-        self.annotation_closable_impressions = None
-        self.annotation_closes = None
-        self.annotation_close_rate = None
-
-        self.__columns = list(map(lambda column: self.format_argument(column["name"]), columnHeaders))
-
-        for row in rows:
-            self.digest_row_data(row)
-
-    @staticmethod
-    def format_argument(argument_name: str) -> str:
-        chunks = []
-        last_splice_index = 0
-        for index in range(len(argument_name)):
-            if argument_name[index] in string.ascii_uppercase:
-                chunks.append(argument_name[last_splice_index: index].lower())
-                last_splice_index = index
-            elif index +1 == len(argument_name):
-                chunks.append(argument_name[last_splice_index: ].lower())
-        if len(chunks) == 0:
-            return argument_name
-        return '_'.join(chunks)
-    
-        
-    def digest_row_data(self, data: List[Union[str, int, float]]) ->None:
-        allowed_metrics = vars(self)
-        meta = {}
-        for index, datapoint in enumerate(data):     
-            argument_name = self.__columns[index]
-            if argument_name not in allowed_metrics.keys():
-                meta[argument_name] = datapoint if argument_name != "day" else datetime.strptime(datapoint, self.DATE_TIME_FORMAT)
-            else:
-                argument = getattr(self, argument_name, None)
-                if argument == None:
-                    argument = []
-                meta["value"] = datapoint
-                argument.append(meta)
-                setattr(self, argument_name, argument)
-
-
 
 
 class MetricRecord(object):
@@ -234,6 +164,10 @@ class MetricRecord(object):
         if in_df:
             self.add_data_to_df(**kwargs)
     
+    def extend(self, ls: List[Dict], in_df:bool = False) -> None:
+        for data in ls:
+            self.add(data)
+    
     @property
     def data(self) -> Dict:
         return self._data
@@ -264,13 +198,91 @@ class MetricRecord(object):
                 raise KeyError(f"{'__'.join(visited_chunk)} does not exists")
         return data
 
+
+class YTMetrics:
+
+    DATE_TIME_FORMAT = YOUTUBE_RESPONSE_DATE_FORMAT
+
+    def __init__(self, columnHeaders: List[Dict[str,str]], rows: List[List]) -> None:
+        self.views: List[Dict] = None
+        self.comments: List[Dict] = None
+        self.likes: List[Dict] = None
+        self.dislikes: List[Dict] = None
+        self.shares: List[Dict] = None
+        self.estimated_minutes_watched: List[Dict] = None
+        self.average_view_duration: List[Dict] = None
+        self.average_view_percentage: List[Dict] = None
+        self.subscribers_gained: List[Dict] = None
+        self.subscribers_lost: List[Dict] = None
+        self.viewer_percentage: List[Dict] = None
+        self.audience_watch_ratio: List[Dict] = None
+        self.relative_retention_performance: List[Dict] = None
+        self.card_impressions: List[Dict] = None
+        self.card_clicks: List[Dict] = None
+        self.card_click_rate: List[Dict] = None
+        self.card_teaser_impressions: List[Dict] = None
+        self.card_teaser_clicks: List[Dict] = None
+        self.card_teaser_click_rate: List[Dict] = None
+        self.annotation_impressions: List[Dict] = None
+        self.annotation_clickable_impressions: List[Dict] = None
+        self.annotation_clicks: List[Dict] = None
+        self.annotation_click_through_rate: List[Dict] = None
+        self.annotation_closable_impressions: List[Dict] = None
+        self.annotation_closes: List[Dict] = None
+        self.annotation_close_rate: List[Dict] = None
+
+
+        self.__dimensions = []
+        self.__columns = []
+
+        for column_header in columnHeaders:
+            name = self.format_argument(column_header["name"])
+            if column_header["columnType"] == "DIMENSION":
+                self.__dimensions.append(name)
+            self.__columns.append(name)
+
+        for row in rows:
+            self.consume_row(row)
+
+    @staticmethod
+    def format_argument(argument_name: str) -> str:
+        chunks = []
+        last_splice_index = 0
+        for index in range(len(argument_name)):
+            if argument_name[index] in string.ascii_uppercase:
+                chunks.append(argument_name[last_splice_index: index].lower())
+                last_splice_index = index
+            elif index +1 == len(argument_name):
+                chunks.append(argument_name[last_splice_index: ].lower())
+        if len(chunks) == 0:
+            return argument_name
+        return '_'.join(chunks)
+    
+    def consume_row(self, data: List[Union[str, int, float]]) -> None:
+        dimensions = {}
+        for index, value in enumerate(data):
+            column = self.__columns[index]
+            if column in self.__dimensions:
+                if column == "day":
+                    dimensions[column] = time_to_string(value)
+                else:
+                    dimensions[column] = value
+            else:
+                argument = getattr(self, column)
+                if argument is None:
+                    argument = []
+                argument.append(dimensions | {"value": value})
+                setattr(self, column, argument)
+    
+
     
 
 
-class YTMetricRecord(MetricRecord):
-    
-    def __init__(self, key_name = "metric", value_name = "value", dimensions = ["day"]) -> None:
-        super().__init__(key_name, value_name, dimensions)
+
+
+
+
+
 
 
 

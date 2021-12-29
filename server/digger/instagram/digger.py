@@ -54,7 +54,6 @@ class InstagramDigger(Digger):
             pages += list(filter(validate_page_data, response.pages))
             if response.paging.after == None:
                 break
-            request = FacebookPageAccountsRequest(access_token)
             response: FacebookPagesAccountsResponse = request(self.request_manager, after=response.paging.after)
         
         handles: List[SocialMediaHandle] = list(map(lambda data: SocialMediaHandle.from_ig_user_data(account, data.instagram_business_account) , pages))
@@ -92,6 +91,8 @@ class InstagramDigger(Digger):
         handle_metric: InstagramHandleMetricModel = InstagramHandleMetricModel.objects.get_or_create(handle=social_media_handle)
         deomgraphic_request = InstagramUserDemographicInsightsRequest(social_media_handle.handle_uid, access_token=social_media_handle.access_token)
         demographic_response: InstagramCarouselMediaInsightsResponse = deomgraphic_request(self.request_manager)
+        social_media_handle.last_date_time_of_token_use = get_current_time()
+        social_media_handle.save()        
         handle_metric.set_metrics_from_user_demographic_response(demographic_response)
         user_insights_request = InstagramUserInsightsRequest(social_media_handle.handle_uid, social_media_handle.access_token)
         user_insights_request: InstagramUserInsightsResponse = user_insights_request(self.request_manager)
