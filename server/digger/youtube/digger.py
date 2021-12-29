@@ -7,6 +7,7 @@ from digger.youtube.request_struct import *
 from digger.youtube.response_struct import *
 from digger.youtube.types import MetricRecord
 from insights.models import YoutubeHandleMetricModel
+from utils import reformat_age_gender
 from utils.types import Platform
 
 
@@ -141,6 +142,10 @@ class YoutubeDigger(Digger):
                 if "day" not in packet:
                     packet["day"] = get_current_time().strftime(YTMetrics.DATE_TIME_FORMAT)
                 metric_record.add(**packet)
+            metric_data_formatted = {}
+            for day, metric_data in metric_record.data.items():
+                metric_data_formatted[day] = reformat_age_gender(metric_data)
+            metric_record.set_data(metric_data_formatted)
             setattr(metrics, formatted_metric_name, metric_record.data)
         return metrics
     

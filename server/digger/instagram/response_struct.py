@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Union
 from digger.base.response_struct import ResponseStruct
 from .types import *
-from utils import get_datetime_from_facebook_response, time_to_string
+from utils import get_datetime_from_facebook_response, reformat_age_gender, time_to_string
 
 
 class FacebookLongLiveTokenResponse(ResponseStruct):
@@ -65,19 +65,10 @@ class InstagramUserDemographicInsightsResponse(ResponseStruct):
                     end_time = get_datetime_from_facebook_response(value["end_time"])
                     packet = value["value"]
                     if insight["name"] == "audience_gender_age":
-                        packet = self.reformat_age_gender(value)
+                        packet = reformat_age_gender(value)
                     setattr(self, insight["name"], {time_to_string(end_time): packet})
         super().__init__(url, status_code, **kwargs)
-    
-    @staticmethod
-    def reformat_age_gender(data: Dict[str, int]) -> Dict[str, int]:
-        gender_group = {"M": 0, "F": 0, "U": 0}
-        age_group = {"age13-17": 0, "age18-24":0, "age25-34": 0, "age45-54": 0, "age55-64": 0, "age65-": 0}
-        for age_gender_name, value in data.items():
-            gender, age = age_gender_name.split(".")
-            gender_group[gender] += value
-            age_group[f"age{age}"] += value
-        return data | age_group | gender_group
+
 
 
 class InstagramUserInsightsResponse(ResponseStruct):
@@ -92,7 +83,7 @@ class InstagramUserInsightsResponse(ResponseStruct):
             if "name" in insight and "values" in insight and len(insight["values"]) > 0:
                 value = insight["values"][0]
                 end_time = get_datetime_from_facebook_response(value["end_time"])
-                setattr(self, insight["name"], {time_to_string(end_time): {"total":value["value"]}})
+                setattr(self, insight["name"], {time_to_string(end_time): {"TOTAL":value["value"]}})
         super().__init__(url, status_code, **kwargs)
 
 

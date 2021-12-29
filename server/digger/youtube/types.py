@@ -103,7 +103,7 @@ class MetricRecord(object):
 
     """
 
-    def __init__(self, key_name: str, value_name: str, dimensions: List[str], key_default: str = None) -> None:
+    def __init__(self, key_name: str, value_name: str, dimensions: List[str], key_default: str = "TOTAL") -> None:
         self.key_name = key_name
         self.value_name = value_name
         self.dimensions = dimensions
@@ -141,7 +141,7 @@ class MetricRecord(object):
         cols = self.columns.copy()
         cols.remove(self.value_name)
         cols.remove("day")
-        if self.key_default is not None:
+        if self.key_name not in kwargs:
             kwargs[self.key_name] = self.key_default
         key_arg = []
         for col in cols:

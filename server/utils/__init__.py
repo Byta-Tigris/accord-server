@@ -1,6 +1,6 @@
 from hashlib import sha256
 from datetime import date, datetime, timedelta
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Tuple, Union
 from django.http.request import QueryDict
 from utils.errors import PasswordValidationError
 import os
@@ -123,4 +123,21 @@ def get_secret(name: str) -> str:
     return os.getenv(name)
 
 
+def reformat_age_gender(data: Dict[str, int]) -> Dict[str, int]:
+        gender_group = {"M": 0, "F": 0, "U": 0}
+        age_group = {"age13-17": 0, "age18-24":0, "age25-34": 0, "age45-54": 0, "age55-64": 0, "age65-": 0}
+        for age_gender_name, value in data.items():
+            gender, age = age_gender_name.split(".")
+            gender_group[gender] += value
+            age_group[f"age{age}"] += value
+        return data | age_group | gender_group
 
+
+def merge_metric(*metrics_array: Dict[str, int]) -> Dict[str, Union[int, float]]:
+        data = {}
+        for metrics in metrics_array:
+            for key, value in metrics.items():
+                if key not in data:
+                    data[key] = 0
+                data[key] += value
+        return data

@@ -4,7 +4,7 @@ from django.db.models.query_utils import Q
 from accounts.models import Account, SocialMediaHandle
 from digger.base.types import Digger, LongLiveTokenResponse
 from insights.models import InstagramHandleMetricModel, InstagramPlalformMetric
-from utils import get_current_time, get_modified_time
+from utils import get_current_time, get_modified_time, merge_metric
 from utils.types import Platform
 from .request_manager import FacebookGraphAPIException, InstagramRequestManager
 from .request_struct import *
@@ -127,10 +127,7 @@ class InstagramDigger(Digger):
                 elif key in ['audience_city', 'audience_gender_age',"audience_country"]:
                     if key not in platform_metric:
                         platform_metric[key] = {}
-                    platform_metric[key] = InstagramHandleMetricModel.merge_metric({
-                        "pm": platform_metric[key],
-                        "extra": value
-                    })
+                    platform_metric[key] = merge_metric(platform_metric[key],value)
         return InstagramPlalformMetric(**platform_metric)
     
     
