@@ -106,6 +106,12 @@ class Digger(AbstractDigger):
         Works for single social_media_handle\n
         """
         pass
+
+    def update_handle_data(self, social_media_handle: SocialMediaHandle) -> SocialMediaHandle:
+        """
+        Update the social media handle data
+        """
+        pass
     
     def update_all_handles_insights(self, account: Account) -> List[SocialMediaHandleMetrics]:
         """

@@ -246,33 +246,18 @@ class TestMetricRecord(TestCase):
         
         for fixture in self.subscribed_metrics_fixture:
             subs_metric_record.add(**fixture)
-            self.assertTrue(fixture["day"] in subs_metric_record)
-            self.assertTrue(fixture["metric"] in subs_metric_record[fixture["day"]])
-            self.assertEqual(subs_metric_record[fixture["day"]][fixture["metric"]], fixture["value"])
-            self.assertTrue(f"{fixture['day']}__{fixture['metric']}" in subs_metric_record)
-            self.assertEqual(subs_metric_record.get(f"{fixture['day']}__{fixture['metric']}"), fixture['value'])
+        self.assertTrue("2020-10-07" in subs_metric_record)
+        self.assertTrue("2020-10-07.SUBSCRIBED" in subs_metric_record)
+        self.assertEqual(subs_metric_record["2020-10-08.UNSUBSCRIBED"], 36)
         
         ## Testing age gender_metric_fixture
         age_gender_record = MetricRecord("metric", "value", ["day", "gender"])
-        for fixture in self.age_gender_fixtures:
-            age_gender_record.add(**fixture)
-            self.assertTrue(fixture["day"] in age_gender_record)
-            self.assertTrue(fixture["gender"] in age_gender_record[fixture["day"]])
-            self.assertEqual(fixture["metric"] in age_gender_record[fixture["day"], fixture["gender"]], True)
-            self.assertEqual(age_gender_record[fixture["day"], fixture["gender"], fixture["metric"]], fixture["value"])
+        # for fixture in self.age_gender_fixtures:
+        # breakpoint()
+        age_gender_record.extend(self.age_gender_fixtures)
+        self.assertTrue("2020-10-07" in age_gender_record)
+        self.assertTrue("2020-10-07.M.age18_24" in age_gender_record)
+        self.assertEqual("2020-10-07.M.age24_36", 0.68)
+            
         
             
-
-    def test_convert_kwargs_to_row(self) -> None:
-        subs_metric_record = MetricRecord(
-            "metric", "value", ["day"]
-        )
-        for fix in self.subscribed_metrics_fixture:
-            self.assertListEqual([fix["day"], fix["metric"], fix["value"]], subs_metric_record.convert_kwargs_to_row(**fix))
-
-    def test_add_data_to_df(self) -> None:
-        age_gender_record = MetricRecord("metric", "value", ["day", "gender"])
-        for fixture in self.age_gender_fixtures:
-            age_gender_record.add(in_df=True,**fixture)
-        d = age_gender_record.df[age_gender_record.df.gender == "M"]
-        self.assertGreater(len(d), 2)

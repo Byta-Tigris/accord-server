@@ -90,14 +90,15 @@ class InstagramDigger(Digger):
     def update_handle_insights(self, social_media_handle: SocialMediaHandle, save: bool=True) -> InstagramHandleMetricModel:
         handle_metric: InstagramHandleMetricModel = InstagramHandleMetricModel.objects.get_or_create(handle=social_media_handle)
         deomgraphic_request = InstagramUserDemographicInsightsRequest(social_media_handle.handle_uid, access_token=social_media_handle.access_token)
-        demographic_response: InstagramCarouselMediaInsightsResponse = deomgraphic_request(self.request_manager)
-        social_media_handle.last_date_time_of_token_use = get_current_time()
-        social_media_handle.save()        
+        demographic_response: InstagramCarouselMediaInsightsResponse = deomgraphic_request(self.request_manager)        
         handle_metric.set_metrics_from_user_demographic_response(demographic_response)
         user_insights_request = InstagramUserInsightsRequest(social_media_handle.handle_uid, social_media_handle.access_token)
         user_insights_request: InstagramUserInsightsResponse = user_insights_request(self.request_manager)
         handle_metric.set_metrics_from_user_insight_response(user_insights_request)
         handle_metric.media_count[time_to_string(get_current_time())] = social_media_handle.media_count
+
+        social_media_handle.last_date_time_of_token_use = get_current_time()
+        social_media_handle = self.update_handle_data(social_media_handle)
         if save:
             handle_metric.save()
         return handle_metric
@@ -108,11 +109,7 @@ class InstagramDigger(Digger):
             return []
         metrics: List[InstagramHandleMetricModel] = []
         for handle in handle_queryset:
-            metrics = self.update_handle_insights(handle, save=False)
-        
-        InstagramHandleMetricModel.objects.bulk_update(
-            metrics, InstagramHandleMetricModel.update_fields
-        )
+            metrics = self.update_handle_insights(handle, save=True)
         return metrics
     
 
@@ -126,7 +123,7 @@ class InstagramDigger(Digger):
                 if key in ["impressions", "reach", "profile_views", "follower_count", "media_count"]:
                     if key not in platform_metric:
                         platform_metric[key] = 0
-                    platform_metric[key] += value
+                    platform_metric[key] += value["total"]
                 elif key in ['audience_city', 'audience_gender_age',"audience_country"]:
                     if key not in platform_metric:
                         platform_metric[key] = {}

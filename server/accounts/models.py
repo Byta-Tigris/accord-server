@@ -356,7 +356,7 @@ class SocialMediaHandle(models.Model):
             handle_uid=yt_channel.id,
             created_on=get_current_time(),
             username=getattr(yt_channel, "title", ""),
-            avatar=getattr(yt_channel, "thumbnails", ""),
+            avatar=getattr(yt_channel, "avatar", ""),
             follower_count=getattr(yt_channel, "follower_count", 0),
             media_count=getattr(yt_channel, "media_count", 0),
             is_publish_permission_valid=True,

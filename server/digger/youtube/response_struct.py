@@ -38,9 +38,9 @@ class YoutubeChannelListResponse(ResponseStruct):
         ,**kwargs) -> None:
         self.error = error
         self.next_page_token = nextPageToken
-        self.channles = []
+        self.channels = []
         if items != None:
-            self.channles = list(map(lambda data: YTChannel(**data), items))
+            self.channels = list(map(lambda data: YTChannel(**data), items))
         super().__init__(url, status_code, **kwargs)
 
 

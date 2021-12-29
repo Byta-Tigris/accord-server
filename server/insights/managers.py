@@ -81,7 +81,12 @@ class YoutubeHandleMetricsManager(SocialMediaHandleMetricsManager):
         if queryset.exists():
             ## Transfer previous informations stored in meta data to new metric
             old_metric = queryset.first()
-            metric.meta_data["prev_totals"] = old_metric.meta_data.get("totals", {})
+            totals = old_metric.meta_data.get("totals", {})
+            for key, value in old_metric.meta_data.get("prev_totals", {}).items():
+                if key not in totals:
+                    totals[key] = 0
+                totals[key] += value
+            metric.meta_data["prev_totals"] = totals
         return metric
 
 

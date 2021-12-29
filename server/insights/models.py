@@ -4,8 +4,8 @@ from django.db import models
 
 from accounts.models import SocialMediaHandle
 from digger.youtube.types import YTMetrics
-from insights.managers import InstagramHandleMetricsManager, SocialMediaHandleMetricsManager
-from utils import get_current_time, get_handle_metrics_expire_time
+from insights.managers import InstagramHandleMetricsManager, SocialMediaHandleMetricsManager, YoutubeHandleMetricsManager
+from utils import YOUTUBE_RESPONSE_DATE_FORMAT, get_current_time, get_handle_metrics_expire_time
 from django.db.models import JSONField
 
 from utils.types import Platform
@@ -101,12 +101,13 @@ class InstagramHandleMetricModel(SocialMediaHandleMetrics):
                     data[key] = 0
                 data[key] += value
         return data
-
+    
 
     def calculate_collective_metrics(self, **data) -> Dict[str, Union[int ,float]]:
-        data["impressions"] = sum(self.impressions.values())
-        data["reach"] = sum(self.reach.values())
-        data["profile_views"] = sum(self.profile_views.values())
+        get_total = lambda _map: [_inner_map["total"] for _inner_map in _map.values()]
+        data["impressions"] = sum(get_total(self.impressions))
+        data["reach"] = sum(get_total(self.reach))
+        data["profile_views"] = sum(get_total(self.profile_views))
         data["audience_city"] = self.merge_metric(self.audience_city)
         data["audience_gender_age"] = self.merge_metric(self.audience_gender_age)
         data["audience_country"] = self.merge_metric(self.audience_country)
@@ -159,14 +160,45 @@ class YoutubeHandleMetricModel(SocialMediaHandleMetrics):
     engagement = models.JSONField(default=dict)
     meta_data = models.JSONField(default=dict)
 
+    objects = YoutubeHandleMetricsManager()
+
+
+    @staticmethod
+    def _transform_age_group_gender_record(self, data: Dict[str, Dict[str, Dict[str, float]]]) -> Dict[str, float]:
+        gender = {"M": [], "F": [], "U": []}
+        age = {"age13-17": [], "age18-24":[], "age25-34": [], "age45-54": [], "age55-64": [], "age65-": []}
+        compressed: Dict[str, List[float]] = {}
+        for value in data.values():
+            for gender_key, gender_value in value.items():
+                for age_group, perc in gender_value.items():
+                    age[age_group].append(perc)
+                    gender[gender_key].append(perc)
+                    codec = f"{gender_key}.{age_group.replace('age','')}"
+                    if codec not in compressed:
+                        compressed[codec] = []
+                    compressed[codec].append(perc)
+        metric_map = {}
+        for key, value in gender.items():
+            metric_map[key] = sum(value)/(count if (count := len(value)) > 0 else 1)
+        for key, value in age.items():
+            metric_map[key] = sum(value)/(count if (count := len(value)) > 0 else 1)
+        for key, value in compressed.items():
+            metric_map[key] = sum(value)/(count if (count := len(value)) > 0 else 1)
+        return metric_map
+
+
+
     def calculate_engagements(self) -> None:
         total: Dict[str, Union[int, float]] = self.meta_data["totals"]
         positive_action = total.get("likes",0) + total.get("shares",0) + total.get("comment",0)
         negative_action = total.get("dislikes", 0)
-        self.positive_engagement = positive_action
-        self.negative_engagement = negative_action
-        self.engagement = positive_action + negative_action
-
+        self.positive_engagement |= {get_current_time().strftime(YOUTUBE_RESPONSE_DATE_FORMAT): {"TOTAL": positive_action}}
+        self.negative_engagement |={get_current_time().strftime(YOUTUBE_RESPONSE_DATE_FORMAT): {"TOTAL": negative_action}}
+        self.engagement |= {get_current_time().strftime(YOUTUBE_RESPONSE_DATE_FORMAT): {"TOTAL": positive_action + negative_action}}
+        self.set_total_of_metrics("positive_engagement")
+        self.set_total_of_metrics("negative_engagement")
+        self.set_total_of_metrics("engagement")
+    
     def calculate_normal_metrics_total(self, data: Dict[str, Dict[str, int]]) -> Union[int, float]:
         return sum([packet["TOTAL"] for packet in data.values()])
     
@@ -179,7 +211,7 @@ class YoutubeHandleMetricModel(SocialMediaHandleMetrics):
             if metric_name not in self.meta_data["totals"]:
                 self.meta_data["totals"][metric_name] = 0
             self.meta_data["totals"][metric_name] += self.calculate_normal_metrics_total(getattr(self, metric_name))
-    
+
     def set_metrics(self, metrics: YTMetrics, save: bool = False) -> None:
         for key, value in vars(metrics):
             if value is not None:
@@ -190,6 +222,16 @@ class YoutubeHandleMetricModel(SocialMediaHandleMetrics):
         self.calculate_engagements()
         if save:
             self.save()
+    
+    def calculate_collective_metrics(self, **data) -> Dict[str, Union[int, float]]:
+        total: Dict[str, Union[int, float]] = self.meta_data["totals"]
+        old_total: Dict[str, Union[int, float]] = self.meta_data.get("prev_totals", {})
+        calc_total = lambda key: total.get("views", 0) + old_total.get("views", 0)
+        data["views"] = calc_total("views")
+        data["engagement"] = calc_total("engagement")
+        data["estimated_minutes_watched"] = calc_total("estimated_minutes_watched")
+        data["average_view_duration"] = calc_total("average_view_duration")
+
 
 class CreatorMetricModel: 
     """
@@ -213,9 +255,8 @@ class InstagramPlalformMetric(CreatorMetricModel):
 
 class YoutubePlatformMetric(CreatorMetricModel):
 
-    def __init__(self, follower_count: int = 0, videos_count: int = 0, impressions: int = 0,
-                       ) -> None:
-        super().__init__()
+    ...
+
 
 
 class PlatformMetricModel: 
