@@ -322,3 +322,21 @@ class YTMetrics:
                     data["day"] = date_to_string(get_current_time())
                 argument.add(**data)
                 setattr(self, column, argument.data)
+    
+    def to_dict(self) -> Dict[str, MetricFieldType]:
+        kwargs = {}
+        for key, value in vars(self).items():
+            if "_YTMetrics" not in key and key[0] != "_":
+                kwargs[key] = value
+        return kwargs
+    
+    def __add__(self, other: 'YTMetrics') -> 'YTMetrics':
+        other_kwargs = other.to_dict()
+        my_kwargs = self.to_dict()
+        for key, value in other_kwargs.items():
+            for day, data in value.items():
+                if day not in my_kwargs[key]:
+                    my_kwargs[key][day] = {}
+                my_kwargs[key][day] |= data
+        return YTMetrics(**my_kwargs)
+

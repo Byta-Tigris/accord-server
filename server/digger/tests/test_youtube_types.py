@@ -165,6 +165,12 @@ class TestYTMetric(TestCase):
         self.assertTrue("2020-10-07" in time_based_metric.estimated_minutes_watched)
         self.assertEqual(time_based_metric.average_view_duration["2020-10-08"]["TOTAL"], 44)
 
+        # breakpoint()
+        time_sub_based_metric = time_based_metric + subscribed_metric
+        self.assertTrue("2020-10-07" in time_sub_based_metric.views)
+        self.assertEqual(time_sub_based_metric.views["2020-10-07"]["UNSUBSCRIBED"], 5)
+        self.assertEqual(time_sub_based_metric.views["2020-10-07"]["TOTAL"], 5)
+
  
 class TestMetricRecord(TestCase):
 

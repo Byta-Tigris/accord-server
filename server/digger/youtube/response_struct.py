@@ -76,7 +76,7 @@ class YoutubeChannelReportResponse(ResponseStruct):
         self.error = error
         self.metrics = None
         if error == None:
-            self.metrics = YTMetrics(columnHeaders, rows)
+            self.metrics = YTMetrics.from_yt_response(columnHeaders, rows)
         super().__init__(url, status_code, **kwargs)
 
 class YoutubeSubscriptionBasedChannelReportsResponse(YoutubeChannelReportResponse):
