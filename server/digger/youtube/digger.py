@@ -1,7 +1,7 @@
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 from accounts.models import Account, SocialMediaHandle
-from digger.base.types import Digger
+from digger.base.types import Digger, PlatformMetricModel
 from digger.youtube.request_manager import YoutubeRequestManager
 from digger.youtube.request_struct import *
 from digger.youtube.response_struct import *
@@ -92,32 +92,7 @@ class YoutubeDigger(Digger):
             return subscription_metrics
 
         ### Combining subscription metrics with time based metrics
-        metrics = yt_metrics
-        for metric_name in subscription_request.metrics:
-            formatted_metric_name = YTMetrics.format_argument(metric_name)
-            metric_record = MetricRecord(
-                "subscribed_status", "value", dimensions=["day"]
-            )
-            if subscription_metrics is not None:
-                data = metric if (metric := getattr(subscription_metrics, metric_name, None)) is not None else []
-                metric_record.extend(data)
-            time_based_data = getattr(yt_metrics, formatted_metric_name)
-            if time_based_data is not None:
-                for packet in time_based_data:
-                    if "subscribed_status" not in packet:
-                        packet["subscribed_status"] = "TOTAL"
-                    metric_record.add(**packet)
-            setattr(metrics, formatted_metric_name, metric_record.data)
-        ## Transforming rest of the properties to {day: {TOTAL: value}} format
-        for field, value in vars(yt_metrics):
-            if field not in subscription_request.metrics + ["viewer_percentage", "shares"]:
-                metric_record = MetricRecord(
-                    "metric", "values", dimensions=["day"]
-                )
-                for metric in value:
-                    metric["metric"] = "TOTAL"
-                    metric_record.add(**metric)
-                setattr(metrics, field, metric_record.data)
+        metrics = yt_metrics + subscription_metrics
         return metrics
     
     def get_demography_based_channel_metrics(self, social_media_handle: SocialMediaHandle, yt_metrics: YTMetrics) -> YTMetrics:
@@ -132,21 +107,8 @@ class YoutubeDigger(Digger):
             return demographic_metrics
 
         metrics = yt_metrics
-        metric_record = MetricRecord(
-            "age_group", "value", dimensions=["day", "gender"]
-        )
-        formatted_metric_name = "viewer_percentage"
-        data = demographic_metrics.viewer_percentage
-        if data is not None:
-            for packet in data:
-                if "day" not in packet:
-                    packet["day"] = get_current_time().strftime(YTMetrics.DATE_TIME_FORMAT)
-                metric_record.add(**packet)
-            metric_data_formatted = {}
-            for day, metric_data in metric_record.data.items():
-                metric_data_formatted[day] = reformat_age_gender(metric_data)
-            metric_record.set_data(metric_data_formatted)
-            setattr(metrics, formatted_metric_name, metric_record.data)
+        if len(demographic_metrics.viewer_percentage) > 0:
+            metrics = yt_metrics + demographic_metrics
         return metrics
     
     def get_sharing_service_based_channel_metrics(self, social_media_handle: SocialMediaHandle, yt_metrics: YTMetrics) -> YTMetrics:
@@ -159,21 +121,7 @@ class YoutubeDigger(Digger):
             return yt_metrics
         if yt_metrics is None:
             return sharing_service_metrics
-        metrics = yt_metrics
-        metric_record = MetricRecord(
-            "sharing_service", "value", dimensions=["day"]
-        )
-        if sharing_service_metrics is not None and sharing_service_metrics.shares is not None:
-            for metric in sharing_service_metrics.shares:
-                if "day" not in metric:
-                    metric["day"] = get_current_time().strftime(YTMetrics.DATE_TIME_FORMAT)
-                metric_record.add(**metric)
-
-        for data in yt_metrics.shares:
-            if "sharing_service" not in data:
-                data["sharing_service"] = "TOTAL"
-            metric_record.add(**data)
-        setattr(metrics, "shares", metric_record.data)
+        metrics = yt_metrics + sharing_service_metrics
         return metrics
     
     def get_social_media_handle_with_updated_token(self, social_media_handle: SocialMediaHandle) -> SocialMediaHandle:
