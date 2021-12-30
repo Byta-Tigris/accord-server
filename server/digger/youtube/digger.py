@@ -219,8 +219,12 @@ class YoutubeDigger(Digger):
         queryset: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.filter(Q(account=account) & Q(platform=Platform.Youtube))
         metrics: List[YoutubeHandleMetricModel] = []
         for handle in queryset:
-            metrics.append(self.update_handle_insights(handle))
+            if (insights := self.update_handle_insights(handle)) is not None:
+                metrics.append(insights)
         return metrics
+    
+    def calculate_platform_metric(self, account: Account) -> PlatformMetricModel:
+        return super().calculate_platform_metric(account)
         
                 
 

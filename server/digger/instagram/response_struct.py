@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Union
 from digger.base.response_struct import ResponseStruct
 from .types import *
-from utils import get_datetime_from_facebook_response, reformat_age_gender, time_to_string
+from utils import date_to_string, get_datetime_from_facebook_response, reformat_age_gender, time_to_string
 
 
 class FacebookLongLiveTokenResponse(ResponseStruct):
@@ -66,7 +66,7 @@ class InstagramUserDemographicInsightsResponse(ResponseStruct):
                     packet = value["value"]
                     if insight["name"] == "audience_gender_age":
                         packet = reformat_age_gender(value)
-                    setattr(self, insight["name"], {time_to_string(end_time): packet})
+                    setattr(self, insight["name"], {date_to_string(end_time): packet})
         super().__init__(url, status_code, **kwargs)
 
 
@@ -83,7 +83,7 @@ class InstagramUserInsightsResponse(ResponseStruct):
             if "name" in insight and "values" in insight and len(insight["values"]) > 0:
                 value = insight["values"][0]
                 end_time = get_datetime_from_facebook_response(value["end_time"])
-                setattr(self, insight["name"], {time_to_string(end_time): {"TOTAL":value["value"]}})
+                setattr(self, insight["name"], {date_to_string(end_time): {"TOTAL":value["value"]}})
         super().__init__(url, status_code, **kwargs)
 
 

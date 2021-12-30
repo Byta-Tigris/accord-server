@@ -1,12 +1,12 @@
-from datetime import datetime
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 from accounts.models import Account, SocialMediaHandle
-from digger.base.types import Digger, LongLiveTokenResponse
-from insights.models import InstagramHandleMetricModel, InstagramPlalformMetric
-from utils import get_current_time, get_modified_time, merge_metric
+from digger.base.types import Digger
+from insights.models import InstagramHandleMetricModel
+from .types import InstagramPlalformMetric
+from utils import date_to_string, get_current_time, merge_metric
 from utils.types import Platform
-from .request_manager import FacebookGraphAPIException, InstagramRequestManager
+from .request_manager import InstagramRequestManager
 from .request_struct import *
 from log_engine.log import logger
 
@@ -95,7 +95,7 @@ class InstagramDigger(Digger):
         user_insights_request = InstagramUserInsightsRequest(social_media_handle.handle_uid, social_media_handle.access_token)
         user_insights_request: InstagramUserInsightsResponse = user_insights_request(self.request_manager)
         handle_metric.set_metrics_from_user_insight_response(user_insights_request)
-        handle_metric.media_count[time_to_string(get_current_time())] = social_media_handle.media_count
+        handle_metric.media_count[date_to_string(get_current_time())] = social_media_handle.media_count
 
         social_media_handle.last_date_time_of_token_use = get_current_time()
         social_media_handle = self.update_handle_data(social_media_handle)

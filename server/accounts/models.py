@@ -15,7 +15,7 @@ from digger.youtube.types import YTChannel
 
 
 ################# Project Built-in imports ###################
-from utils import YOUTUBE_RESPONSE_DATE_FORMAT, account_id_generator, get_current_time, validate_password
+from utils import DATE_FORMAT, account_id_generator, get_current_time, validate_password
 from django.core.validators import validate_email
 from utils.ad_data import AdRate
 from utils.errors import AccountAlreadyExists
@@ -347,7 +347,7 @@ class SocialMediaHandle(models.Model):
     def from_yt_channel(cls, account: Account, yt_channel: YTChannel) -> 'SocialMediaHandle':
         meta_data = yt_channel.meta_data
         if hasattr(yt_channel, "published_at"):
-            meta_data["published_at"] = yt_channel.created_on.strftime(YOUTUBE_RESPONSE_DATE_FORMAT)
+            meta_data["published_at"] = yt_channel.created_on.strftime(DATE_FORMAT)
         
         model = cls(
             platform=Platform.Youtube,

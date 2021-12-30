@@ -2,7 +2,6 @@ from datetime import datetime
 from unittest import TestCase
 
 from digger.youtube.types import MetricRecord, YTMetrics
-from utils import YOUTUBE_RESPONSE_DATE_FORMAT
 
 
 class TestYTMetric(TestCase):
@@ -46,13 +45,9 @@ class TestYTMetric(TestCase):
             ],
             }
         # breakpoint()
-        sharing_metric = YTMetrics(sharing_service_fixture["columnHeaders"], sharing_service_fixture["rows"])
-        self.assertNotEqual(sharing_metric.shares,None)
-        self.assertGreater(len(sharing_metric.shares), 0)
-        self.assertEqual(len(sharing_metric.shares), 3)
-        self.assertTrue("sharing_service" in sharing_metric.shares[0])
-        self.assertEqual(sharing_metric.shares[0]["sharing_service"],"WHATS_APP" )
-        self.assertEqual(sharing_metric.shares[2]["value"], 8)
+        sharing_metric = YTMetrics.from_yt_response(sharing_service_fixture["columnHeaders"], sharing_service_fixture["rows"])
+        self.assertNotEqual(sharing_metric.shares, None)
+        self.assertEqual(len(sharing_metric.shares), 1)
 
 
         
@@ -116,15 +111,13 @@ class TestYTMetric(TestCase):
                 ]
             }
         # breakpoint()
-        subscribed_metric = YTMetrics(subscribed_status_fixture["columnHeaders"], subscribed_status_fixture["rows"])
+        subscribed_metric = YTMetrics.from_yt_response(subscribed_status_fixture["columnHeaders"], subscribed_status_fixture["rows"])
         self.assertNotEqual(subscribed_metric.views, None)
         self.assertNotEqual(subscribed_metric.estimated_minutes_watched, None)
         self.assertNotEqual(subscribed_metric.average_view_duration, None)
         self.assertGreater(len(subscribed_metric.views), 0)
-        self.assertTrue("subscribed_status" in subscribed_metric.views[0])
-        self.assertEqual(subscribed_metric.views[0]["subscribed_status"], "UNSUBSCRIBED")
-        self.assertTrue("day" in subscribed_metric.estimated_minutes_watched[0])
-        self.assertEqual(subscribed_metric.average_view_duration[1]["value"], 47)
+        self.assertTrue("UNSUBSCRIBED" in subscribed_metric.views["2020-10-07"])
+        self.assertEqual(subscribed_metric.average_view_duration["2020-10-22"]["SUBSCRIBED"], 47)
 
 
         time_based_fixture = {
@@ -167,11 +160,10 @@ class TestYTMetric(TestCase):
                 ]
             }
         # breakpoint()
-        time_based_metric = YTMetrics(time_based_fixture["columnHeaders"], time_based_fixture["rows"])
+        time_based_metric = YTMetrics.from_yt_response(time_based_fixture["columnHeaders"], time_based_fixture["rows"])
         self.assertNotEqual(time_based_metric.views, None)
-        self.assertTrue("day" in time_based_metric.estimated_minutes_watched[0])
-        self.assertEqual(time_based_metric.views[0]["day"], datetime.strptime("2020-10-07", YOUTUBE_RESPONSE_DATE_FORMAT))
-        self.assertEqual(time_based_metric.average_view_duration[1]["value"], 44)
+        self.assertTrue("2020-10-07" in time_based_metric.estimated_minutes_watched)
+        self.assertEqual(time_based_metric.average_view_duration["2020-10-08"]["TOTAL"], 44)
 
  
 class TestMetricRecord(TestCase):

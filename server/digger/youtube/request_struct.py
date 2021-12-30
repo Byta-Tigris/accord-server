@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from digger.base.request_struct import RequestStruct, RequestMethod
 from .response_struct import *
-from utils import YOUTUBE_RESPONSE_DATE_FORMAT, get_current_time, get_secret
+from utils import DATE_FORMAT as _DATE_FORMAT, get_current_time, get_secret
 
 
 """
@@ -143,7 +143,7 @@ class YoutubeMultipleVideoDataRequest(YoutubeAuthorizedRequest):
 class YoutubeChannelReportRequest(YoutubeAuthorizedAnalyticsRequest):
     endpoint = "/query"
     method = RequestMethod.Get
-    DATE_FORMAT = YOUTUBE_RESPONSE_DATE_FORMAT
+    DATE_FORMAT = _DATE_FORMAT
 
     def __init__(self, access_token, end_date: datetime = get_current_time(), start_date: datetime = None) -> None:
         self.access_token = access_token

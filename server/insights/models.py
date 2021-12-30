@@ -5,7 +5,7 @@ from django.db import models
 from accounts.models import SocialMediaHandle
 from digger.youtube.types import YTMetrics
 from insights.managers import InstagramHandleMetricsManager, SocialMediaHandleMetricsManager, YoutubeHandleMetricsManager
-from utils import YOUTUBE_RESPONSE_DATE_FORMAT, get_current_time, get_handle_metrics_expire_time, merge_metric
+from utils import DATE_FORMAT, get_current_time, get_handle_metrics_expire_time, merge_metric
 from django.db.models import JSONField
 
 from utils.types import Platform
@@ -167,9 +167,9 @@ class YoutubeHandleMetricModel(SocialMediaHandleMetrics):
         total: Dict[str, Union[int, float]] = self.meta_data["totals"]
         positive_action = total.get("likes",0) + total.get("shares",0) + total.get("comment",0)
         negative_action = total.get("dislikes", 0)
-        self.positive_engagement |= {get_current_time().strftime(YOUTUBE_RESPONSE_DATE_FORMAT): {"TOTAL": positive_action}}
-        self.negative_engagement |={get_current_time().strftime(YOUTUBE_RESPONSE_DATE_FORMAT): {"TOTAL": negative_action}}
-        self.engagement |= {get_current_time().strftime(YOUTUBE_RESPONSE_DATE_FORMAT): {"TOTAL": positive_action + negative_action}}
+        self.positive_engagement |= {get_current_time().strftime(DATE_FORMAT): {"TOTAL": positive_action}}
+        self.negative_engagement |={get_current_time().strftime(DATE_FORMAT): {"TOTAL": negative_action}}
+        self.engagement |= {get_current_time().strftime(DATE_FORMAT): {"TOTAL": positive_action + negative_action}}
         self.set_total_of_metrics("positive_engagement")
         self.set_total_of_metrics("negative_engagement")
         self.set_total_of_metrics("engagement")
@@ -209,52 +209,18 @@ class YoutubeHandleMetricModel(SocialMediaHandleMetrics):
             self.save()
     
     def calculate_collective_metrics(self, **data) -> Dict[str, Union[int, float]]:
-        # TODO: Need to add all the metrics
         total: Dict[str, Union[int, float]] = self.meta_data["totals"]
-        data["views"] = total.get("views", 0)
-        data["engagement"] = total.get("engagement", 0)
-        data["estimated_minutes_watched"] = total.get("estimated_minutes_watched", 0)
-        data["average_view_duration"] = total.get("average_view_duration", 0)
-        data["viewer_percentage"] = total.get("viewer_percentage", {})
-        data["positive_engagement"] = total.get("positive_engagement", 0)
-        data["negative_engagement"] = total.get("negative_engagement", 0)
+        data |= total
         return data
 
 
 
 
-class CreatorMetricModel: 
-    """
-    Manages Creators overall metric data for a week
-    """
-    ...
-
-
-class InstagramPlalformMetric(CreatorMetricModel):
-    
-    def __init__(self, follower_count: int, media_count: int, impressions: int, reach: int, profile_views: int, audience_city: Dict[str, int], audience_gender_age: Dict[str, int], audience_country: Dict[str, int]) -> None:
-        self.follower_count = follower_count
-        self.media_count = media_count
-        self.impressions = impressions
-        self.reach = reach
-        self.profile_views = profile_views
-        self.audience_city = audience_city
-        self.audience_gender_age = audience_gender_age
-        self.audience_country = audience_country
-
-
-class YoutubePlatformMetric(CreatorMetricModel):
-
-    ...
 
 
 
-class PlatformMetricModel: 
-    """
-    Overall platform metric data for a week, i.e
-    Overall metrics of Instagram / Youtube platform
-    """
-    ...
+
+
 
 
 

@@ -2,7 +2,7 @@ from datetime import datetime
 import string
 from typing import Any, Dict, List, Tuple, Union
 import pandas as pd
-from utils import YOUTUBE_RESPONSE_DATE_FORMAT, get_datetime_from_youtube_response, get_tag_from_youtube_topics, time_to_string
+from utils import DATE_FORMAT, date_to_string, get_current_time, get_datetime_from_youtube_response, get_tag_from_youtube_topics
 
 
 class YTChannel:
@@ -110,6 +110,12 @@ class MetricRecord(object):
         self.key_default = key_default
         self.columns = self.dimensions + [self.key_name, self.value_name]
         self._data = {}
+    
+    @classmethod
+    def from_dict(cls, config, data) -> 'MetricRecord':
+        record = cls(**config)
+        record.set_data(data)
+        return record
 
 
     def set_data(self, data) -> None:
@@ -140,13 +146,14 @@ class MetricRecord(object):
     def _convert(self, **kwargs) -> Tuple[str, Dict]:
         cols = self.columns.copy()
         cols.remove(self.value_name)
+        day = kwargs["day"]
         cols.remove("day")
         if self.key_name not in kwargs:
             kwargs[self.key_name] = self.key_default
         key_arg = []
         for col in cols:
             key_arg.append(kwargs[col])
-        return kwargs["day"], {".".join(key_arg): kwargs[self.value_name]}
+        return day, {".".join(key_arg): kwargs[self.value_name]}
 
 
     def add(self, **kwargs) -> None:
@@ -166,58 +173,117 @@ class MetricRecord(object):
 
 
 
+MetricFieldType = Dict[str, Dict[str, Union[int, float]]]
+
 class YTMetrics:
 
-    DATE_TIME_FORMAT = YOUTUBE_RESPONSE_DATE_FORMAT
+    DATE_TIME_FORMAT = DATE_FORMAT
     subscribed_status_fields = ["views", "likes", "dislikes", "shares", "estimated_minutes_watched",
                                 "average_view_duration", "average_view_percentage", "annotation_click_through_rate",
                                 "annotation_close_rate", "annotation_impressions", "annotation_clickable_impressions",
                                 "annotation_closable_impressions", "annotation_clicks", "annotation_closes", "card_click_rate",
                                 "card_teaser_click_rate", "card_impressions", "card_teaser_impressions", "card_clicks", "card_teaser_clicks"
                                 ]
+    sharing_service_configs = {"key_name": "sharing_service", "value_name": "value", "dimensions": ["day"]}
+    age_gender_configs = {"key_name": "age_group", "value_name": "value", "dimensions": ["day", "gender"]}
+    normal_configs = {"key_name": "metric", "value_name": "value", "dimensions": ["day"]}
+    subscribed_configs = {"key_name": "subscribed_status", "value_name": 'value', "dimensions": ["day"]}
 
-    def __init__(self, columnHeaders: List[Dict[str, str]], rows: List[List]) -> None:
-        self.views: List[Dict] = None
-        self.comments: List[Dict] = None
-        self.likes: List[Dict] = None
-        self.dislikes: List[Dict] = None
-        self.shares: List[Dict] = None
-        self.estimated_minutes_watched: List[Dict] = None
-        self.average_view_duration: List[Dict] = None
-        self.average_view_percentage: List[Dict] = None
-        self.subscribers_gained: List[Dict] = None
-        self.subscribers_lost: List[Dict] = None
-        self.viewer_percentage: List[Dict] = None
-        self.audience_watch_ratio: List[Dict] = None
-        self.relative_retention_performance: List[Dict] = None
-        self.card_impressions: List[Dict] = None
-        self.card_clicks: List[Dict] = None
-        self.card_click_rate: List[Dict] = None
-        self.card_teaser_impressions: List[Dict] = None
-        self.card_teaser_clicks: List[Dict] = None
-        self.card_teaser_click_rate: List[Dict] = None
-        self.annotation_impressions: List[Dict] = None
-        self.annotation_clickable_impressions: List[Dict] = None
-        self.annotation_clicks: List[Dict] = None
-        self.annotation_click_through_rate: List[Dict] = None
-        self.annotation_closable_impressions: List[Dict] = None
-        self.annotation_closes: List[Dict] = None
-        self.annotation_close_rate: List[Dict] = None
+    def get_configs(self, prop_name) -> Dict[str, str]:
+        """
+        Metric record has different init kwargs for different types of metrics\n
+        Method helps in selecting the matching configs according to their dimensions\n
 
+        @param prop_name - Name of the metric
+        @return Metric record configurations for each metric
+        """
+        if prop_name == "viewer_percentage":
+            return self.age_gender_configs
+        elif prop_name == "shares":
+            return self.sharing_service_configs
+        elif prop_name in self.subscribed_status_fields:
+            return self.subscribed_configs
+        return self.normal_configs
+    
+    def get_metric_record(self, name, value) -> MetricRecord:
+        """
+        Shorthand wrapper to create metric record using name and value
+        """
+        if value is None:
+            value = {}
+        return MetricRecord.from_dict(self.get_configs(name), value)
+
+    def __init__(self, views: MetricFieldType  = None, comments :MetricFieldType  = None, likes: MetricFieldType  = None, 
+                dislikes: MetricFieldType  = None, shares: MetricFieldType  = None, estimated_minutes_watched: MetricFieldType = None,
+                average_view_duration: MetricFieldType  = None,average_view_percentage: MetricFieldType  = None,subscribers_gained: MetricFieldType  = None,
+                subscribers_lost: MetricFieldType  = None,viewer_percentage: MetricFieldType  = None,audience_watch_ratio: MetricFieldType  = None,
+                relative_retention_performance: MetricFieldType  = None,card_impressions: MetricFieldType  = None,card_clicks: MetricFieldType  = None,
+                card_click_rate: MetricFieldType  = None,card_teaser_impressions: MetricFieldType  = None,card_teaser_clicks: MetricFieldType  = None,
+                card_teaser_click_rate: MetricFieldType  = None,annotation_impressions: MetricFieldType  = None,annotation_clickable_impressions: MetricFieldType  = None,
+                annotation_clicks: MetricFieldType  = None,annotation_click_through_rate: MetricFieldType  = None,annotation_closable_impressions: MetricFieldType  = None,
+                annotation_closes: MetricFieldType  = None,annotation_close_rate: MetricFieldType  = None, **kwargs
+    ) -> None:
         self.__dimensions = []
         self.__columns = []
+        self.views = self.get_metric_record("views", views).data
+        self.comments = self.get_metric_record("comments",comments).data
+        self.likes = self.get_metric_record("likes",likes).data
+        self.dislikes = self.get_metric_record("dislikes",dislikes).data
+        self.shares = self.get_metric_record("shares", shares).data
+        self.estimated_minutes_watched = self.get_metric_record("estimated_minutes_watched",estimated_minutes_watched).data
+        self.average_view_duration = self.get_metric_record("average_view_duration",average_view_duration).data
+        self.average_view_percentage = self.get_metric_record("average_view_percentage", average_view_percentage).data
+        self.subscribers_gained = self.get_metric_record("subscribers_gained", subscribers_gained).data
+        self.subscribers_lost = self.get_metric_record("subscribers_lost", subscribers_lost).data
+        self.viewer_percentage = self.get_metric_record("viewer_percentage", viewer_percentage).data
+        self.audience_watch_ratio = self.get_metric_record("audience_watch_ratio", audience_watch_ratio).data
+        self.relative_retention_performance = self.get_metric_record("relative_retention_performance", relative_retention_performance).data
+        self.card_impressions = self.get_metric_record("card_impressions", card_impressions).data
+        self.card_clicks = self.get_metric_record("card_clicks", card_clicks).data
+        self.card_click_rate = self.get_metric_record("card_click_rate", card_click_rate).data
+        self.card_teaser_impressions = self.get_metric_record("card_teaser_impressions", card_teaser_impressions).data
+        self.card_teaser_clicks = self.get_metric_record("card_teaser_clicks", card_teaser_clicks).data
+        self.card_teaser_click_rate = self.get_metric_record("card_teaser_click_rate", card_teaser_click_rate).data
+        self.annotation_impressions = self.get_metric_record("annotation_impressions", annotation_impressions).data
+        self.annotation_clickable_impressions = self.get_metric_record("annotation_clickable_impressions", annotation_clickable_impressions).data
+        self.annotation_clicks = self.get_metric_record("annotation_clicks", annotation_clicks).data
+        self.annotation_click_through_rate = self.get_metric_record("annotation_click_through_rate", annotation_click_through_rate).data
+        self.annotation_closable_impressions = self.get_metric_record("annotation_closable_impressions", annotation_closable_impressions).data
+        self.annotation_closes = self.get_metric_record("annotation_closes", annotation_closes).data
+        self.annotation_close_rate = self.get_metric_record("annotation_close_rate", annotation_close_rate).data
+    
 
+    def add_dimension(self, value: str) -> None:
+        self.__dimensions.append(value)
+    
+    def add_column(self, value: str) -> None:
+        self.__columns.append(value)
+    
+    @classmethod
+    def from_yt_response(cls, columnHeaders: List[Dict[str, str]], rows: List[List]) -> 'YTMetrics':
+        """
+        Convert normal Youtube response to YTMetrics by using columnHeaders and rows provided
+        in the response
+
+        @param columHeaders - The {List[Dict[str,str]]} with information about the column it is representing
+                              columnHeader['columnType'] defines whether the column is a metric or dimension
+        @param rows - {List[List[Union[str, int , float]]]} each row contains data same in the sequence as the columns
+        """
+        metrics: 'YTMetrics' = cls()
         for column_header in columnHeaders:
-            name = self.format_argument(column_header["name"])
+            name = metrics.format_argument(column_header["name"])
             if column_header["columnType"] == "DIMENSION":
-                self.__dimensions.append(name)
-            self.__columns.append(name)
-
+                metrics.add_dimension(name)
+            metrics.add_column(name)
         for row in rows:
-            self.consume_row(row)
-
+            metrics.consume_row(row)
+        return metrics
+    
     @staticmethod
     def format_argument(argument_name: str) -> str:
+        """
+        Formats argument name from camelCase to snake_case
+        """
         chunks = []
         last_splice_index = 0
         for index in range(len(argument_name)):
@@ -231,17 +297,28 @@ class YTMetrics:
         return '_'.join(chunks)
 
     def consume_row(self, data: List[Union[str, int, float]]) -> None:
+        """
+        Converts each row into dict, which is later added to the metrics.
+        Each time the metric is converted into MetricRecord from dict and again to dict for setting
+        If any of the column is dimension then it will be same for all the metric values in the row, thus
+        we needed to create dimensions dict
+
+        @params data - {List[Union[str,int, float]]} row with data arranged according to column
+        @return None
+
+        """
         dimensions = {}
         for index, value in enumerate(data):
             column = self.__columns[index]
             if column in self.__dimensions:
                 if column == "day":
-                    dimensions[column] = time_to_string(value)
+                    dimensions[column] = date_to_string(value) if isinstance(value, datetime) else value
                 else:
                     dimensions[column] = value
             else:
-                argument = getattr(self, column)
-                if argument is None:
-                    argument = []
-                argument.append(dimensions | {"value": value})
-                setattr(self, column, argument)
+                argument: MetricRecord = self.get_metric_record(column, getattr(self, column, None))
+                data = dimensions | {"value": value}
+                if "day" not in data:
+                    data["day"] = date_to_string(get_current_time())
+                argument.add(**data)
+                setattr(self, column, argument.data)

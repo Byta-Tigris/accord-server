@@ -1,3 +1,4 @@
+from digger.base.types import CreatorMetricModel, PlatformMetricModel
 from utils.types import InstagramMediaProductTypes, InstagramMediaTypes
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
@@ -157,3 +158,15 @@ class InstagramStoryMetrics:
         self.replies = replies
         self.taps_forward = taps_forward
         self.taps_back = taps_back
+
+class InstagramPlalformMetric(PlatformMetricModel):
+    
+    def __init__(self, follower_count: int, media_count: int, impressions: int, reach: int, profile_views: int, audience_city: Dict[str, int], audience_gender_age: Dict[str, int], audience_country: Dict[str, int]) -> None:
+        self.follower_count = follower_count
+        self.media_count = media_count
+        self.impressions = impressions
+        self.reach = reach
+        self.profile_views = profile_views
+        self.audience_city = audience_city
+        self.audience_gender_age = audience_gender_age
+        self.audience_country = audience_country

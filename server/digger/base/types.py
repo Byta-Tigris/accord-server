@@ -1,8 +1,4 @@
-from typing import Any, Dict, List, Type, Union, TypeVar
-from typing_extensions import Self
-from accounts.models import Account, SocialMediaHandle
-from insights.models import CreatorMetricModel, SocialMediaHandleMetrics, PlatformMetricModel
-
+from typing import Any, Dict, List, Union
 
 
 
@@ -11,7 +7,7 @@ class AbstractResponseStruct:
     url: str = None
     
     @classmethod
-    def from_data(cls, url,kwargs) -> Self: ...
+    def from_data(cls, url,kwargs) -> 'AbstractResponseStruct': ...
 
     def to_kwargs(self) -> Dict[str, Any]: ...
 
@@ -45,6 +41,15 @@ class AbstractDigger:
     pass
 
 
+class PlatformMetricModel:
+    ...
+
+class CreatorMetricModel: 
+    """
+    Manages Creators overall metric data for a week
+    """
+    ...
+
 LongLiveTokenResponse = type(AbstractResponseStruct)
 
 class Digger(AbstractDigger):
@@ -62,7 +67,7 @@ class Digger(AbstractDigger):
         pass
 
 
-    def get_long_lived_token(self, account: Account, short_lived_token: str) -> LongLiveTokenResponse:
+    def get_long_lived_token(self, account: 'Account', short_lived_token: str) -> LongLiveTokenResponse:
         """
         Exchanges the short-lived token with the long-lived token\n
         Returns Long Live Token Response
@@ -70,13 +75,13 @@ class Digger(AbstractDigger):
         pass
     
     
-    def get_refresh_token(self, social_media_handle: SocialMediaHandle) -> LongLiveTokenResponse:
+    def get_refresh_token(self, social_media_handle: 'SocialMediaHandle') -> LongLiveTokenResponse:
         """
         Refreshes token and returns LongLiveTokenResponse
         """
         pass
 
-    def create_or_update_social_media_handles(self, account: Account, access_token: str, expires_in: int = 3599, refresh_token: str = None) -> List[SocialMediaHandle]:
+    def create_or_update_social_media_handles(self, account: 'Account', access_token: str, expires_in: int = 3599, refresh_token: str = None) -> List['SocialMediaHandle']:
         """
         Fetches all handles related with the access_token\n
         Update the existing handles with the new access_token\n
@@ -92,13 +97,13 @@ class Digger(AbstractDigger):
         """
         pass
 
-    def resync_social_media_handles(self, account: Account, access_token: str = None) -> List[SocialMediaHandle]:
+    def resync_social_media_handles(self, account: 'Account', access_token: str = None) -> List['SocialMediaHandle']:
         """
         Resync all the social media handles if such functionality is supported\n
         """
         pass
 
-    def update_handle_insights(self, social_media_handle: SocialMediaHandle) -> SocialMediaHandleMetrics:
+    def update_handle_insights(self, social_media_handle: 'SocialMediaHandle') -> 'SocialMediaHandleMetrics':
         """
         Fetches all handle related insights, and update the handle metrics.\n
         If the handle metrics has crossed the 7 days time, new handle metric will be contrsucted\n
@@ -107,25 +112,25 @@ class Digger(AbstractDigger):
         """
         pass
 
-    def update_handle_data(self, social_media_handle: SocialMediaHandle) -> SocialMediaHandle:
+    def update_handle_data(self, social_media_handle: 'SocialMediaHandle') -> 'SocialMediaHandle':
         """
         Update the social media handle data
         """
         pass
     
-    def update_all_handles_insights(self, account: Account) -> List[SocialMediaHandleMetrics]:
+    def update_all_handles_insights(self, account: 'Account') -> List['SocialMediaHandleMetrics']:
         """
         Update handle insight in bulk or from single function
         """
         pass
 
-    def calculate_platform_metric(self, account: Account) -> PlatformMetricModel:
+    def calculate_platform_metric(self, account: 'Account') -> PlatformMetricModel:
         """
         Calculates all the metrics from the social handle and updates the platfrom metric similarly
         """
         pass
     
-    def update_creator_insights(self, account: Account, digger: List[AbstractDigger]) -> CreatorMetricModel:
+    def update_creator_insights(self, account: 'Account', digger: List[AbstractDigger]) -> CreatorMetricModel:
         """
         Calculates creators overall insight and Update Creator insight metric\n
         Every digger will implement 

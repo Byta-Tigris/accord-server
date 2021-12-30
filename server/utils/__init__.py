@@ -30,6 +30,7 @@ def validate_password(password: str) -> bool:
 # DATE-MONTH-YEAR-HOUR-MINUTE-SECOND-MICROSECOND ---- UTC_OFFSET = 0
 # EG: 20-11-2021T07-09-44-915637 ;; ALL TIMES IN UTC
 DATE_TIME_FORMAT = "%d-%m-%YT%I:%M:%S"
+DATE_FORMAT = "%d-%m-%Y"
 FACEBOOK_RESPONSE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 YOUTUBE_RESPONSE_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 YOUTUBE_RESPONSE_DATE_FORMAT = "%Y-%m-%d"
@@ -89,6 +90,10 @@ def get_desired_resolution_image_from_youtube_thumbnail_url(url: str, res: str) 
 
 def time_to_string(time: datetime) -> str:
     return time.strftime(DATE_TIME_FORMAT)
+
+def date_to_string(time: datetime) -> str:
+    return time.strftime(DATE_FORMAT)
+
 
 
 def string_to_time(time_str: str) -> datetime:
