@@ -257,7 +257,7 @@ class SocialMediaHandle(models.Model):
     last_date_time_of_token_use  = models.DateTimeField(default=get_current_time)
     created_on = models.DateTimeField(default=get_current_time)
     username = models.CharField(max_length=70, default="")
-    avatar = models.URLField(null=True, blank=True)
+    avatar = models.URLField(null=True, blank=True, max_length=300)
     is_publish_permission_valid = models.BooleanField(default=False)
     follower_count = models.PositiveBigIntegerField(default=0)
     media_count = models.PositiveIntegerField(default=0)
@@ -328,7 +328,7 @@ class SocialMediaHandle(models.Model):
             handle_uid=ig_user.id,
             handle_url=f"https://www.instagram.com/{ig_user.username}/",
             is_refresh_token_dependent=False,
-            last_date_time_of_token_user=get_current_time(),
+            last_date_time_of_token_use=get_current_time(),
             created_on=get_current_time(),
             username=ig_user.username,
             avatar=ig_user.profile_picture_url,

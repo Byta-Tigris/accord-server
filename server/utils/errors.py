@@ -17,3 +17,12 @@ class PasswordValidationError(Exception):
 
     def __init__(self, password: str) -> None:
         super().__init__(f"{password}: is not valid, enter password with len in range of 8 to 20 chars and containing alphabets and numbers.")
+
+
+class AccountDoesNotExists(Exception):
+    def __init__(self, username: str) -> None:
+        super().__init__(f"Account with username {username} does not exists")
+
+class InvalidAuthentication(Exception):
+    def __init__(self, username: str) -> None:
+        super().__init__(f"Authentication for account {username} is invalid")

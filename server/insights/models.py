@@ -73,6 +73,7 @@ class InstagramHandleMetricModel(SocialMediaHandleMetrics):
     audience_gender_age = models.JSONField(default=dict)
     audience_country = models.JSONField(default=dict)
     profile_views = models.JSONField(default=dict)
+    meta_data = models.JSONField(default=dict)
 
     objects = InstagramHandleMetricsManager()
     update_fields = ['follower_count' ,'media_count', 'impressions',
@@ -104,13 +105,14 @@ class InstagramHandleMetricModel(SocialMediaHandleMetrics):
     
 
     def calculate_collective_metrics(self, **data) -> Dict[str, Union[int ,float]]:
-        get_total = lambda _map: [_inner_map["total"] for _inner_map in _map.values()]
-        data["impressions"] = sum(get_total(self.impressions))
-        data["reach"] = sum(get_total(self.reach))
-        data["profile_views"] = sum(get_total(self.profile_views))
-        data["audience_city"] = merge_metric(*self.audience_city.values())
-        data["audience_gender_age"] = merge_metric(*self.audience_gender_age.values())
-        data["audience_country"] = merge_metric(*self.audience_country.values())
+        get_total = lambda _map: [_inner_map["TOTAL"] for _inner_map in _map.values()]
+        get_last_value =  lambda _map: list(values)[-1] if len((values := _map.values())) > 0 else {}
+        data["impressions"] = {"TOTAL": sum(get_total(self.impressions))}
+        data["reach"] = {"TOTAL": sum(get_total(self.reach))}
+        data["profile_views"] = {"TOTAL": sum(get_total(self.profile_views))}
+        data["audience_city"] = get_last_value(*self.audience_city.values())
+        data["audience_gender_age"] = get_last_value(*self.audience_gender_age.values())
+        data["audience_country"] = get_last_value(*self.audience_country.values())
         return data
 
 
@@ -191,17 +193,19 @@ class YoutubeHandleMetricModel(SocialMediaHandleMetrics):
             self.meta_data["totals"][metric_name] += self.calculate_normal_metrics_total(getattr(self, metric_name))
 
     def set_metrics(self, metrics: YTMetrics, save: bool = False) -> None:
-        for property_name, property_value in vars(metrics).items():
-            if property_value is None:
+        """
+        Combines new metrics with the current data and recalculate the totals and engagements
+        """
+        for property_name, property_value in metrics.to_dict().items():
+            if property_value is None or len(property_value) == 0:
                 continue
             attr = getattr(self, property_name, None)
             if attr is None:
                 attr = {}
             for day, value in property_value.items():
-                if day in attr:
-                    attr[day] |= value
-                else:
-                    attr[day] = value
+                if day not in attr:
+                    attr[day] = {}
+                attr[day] |= value
             setattr(self, property_name, attr)
             self.set_total_of_metrics(property_name)
         self.calculate_engagements()

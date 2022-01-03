@@ -59,13 +59,14 @@ class InstagramUserDemographicInsightsResponse(ResponseStruct):
         self.audience_country: Dict[str,Dict[str, int]] = {}
         self.audience_gender_age: Dict[str, Dict[str, int]] = {}
         if not self.error:
+            # breakpoint()
             for insight in data:
                 if "name" in insight and "values" in insight and len(insight["values"]) > 0:
                     value = insight["values"][0]
                     end_time = get_datetime_from_facebook_response(value["end_time"])
                     packet = value["value"]
                     if insight["name"] == "audience_gender_age":
-                        packet = reformat_age_gender(value)
+                        packet = reformat_age_gender(value["value"])
                     setattr(self, insight["name"], {date_to_string(end_time): packet})
         super().__init__(url, status_code, **kwargs)
 

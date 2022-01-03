@@ -130,7 +130,7 @@ def get_secret(name: str) -> str:
 
 def reformat_age_gender(data: Dict[str, int]) -> Dict[str, int]:
         gender_group = {"M": 0, "F": 0, "U": 0}
-        age_group = {"age13-17": 0, "age18-24":0, "age25-34": 0, "age45-54": 0, "age55-64": 0, "age65-": 0}
+        age_group = {"age13-17": 0, "age18-24":0, "age25-34": 0, "age35-44": 0, "age45-54": 0, "age55-64": 0, "age65-": 0}
         for age_gender_name, value in data.items():
             gender, age = age_gender_name.split(".")
             gender_group[gender] += value
@@ -146,3 +146,7 @@ def merge_metric(*metrics_array: Dict[str, int]) -> Dict[str, Union[int, float]]
                     data[key] = 0
                 data[key] += value
         return data
+
+
+def is_in_debug_mode() -> bool:
+    return os.getenv('DEBUG', False) == 'True'

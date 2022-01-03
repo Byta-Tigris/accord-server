@@ -1,3 +1,4 @@
+from rest_framework.authtoken.models import Token
 from rest_framework.request import Request
 
 from accounts.models import Account
@@ -9,8 +10,10 @@ class AccountAuthenticationMiddleware:
 
     def __call__(self, request: Request):
         account = None
-        if not request.user:
-            account_queryset = Account.objects.filter(user=request.user)
+        if (token_str := request.META.get('HTTP_AUTHORIZATION', None)) is not None:
+            token_key: str = token_str.replace("Token ", "")
+            token: Token = Token.objects.get(key=token_key)
+            account_queryset = Account.objects.select_related('user').filter(user=token.user)
             if account_queryset.exists():
                 account: Account = account_queryset.first()
         setattr(request, "account", account)

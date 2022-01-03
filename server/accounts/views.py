@@ -1,5 +1,7 @@
-from typing import Union
+from typing import Dict, Union
+from django.db.models.query import QuerySet
 from rest_framework.views import APIView
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
@@ -8,13 +10,16 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
+from accounts.serializers import AccountSerializer
 from log_engine.log import logger
-from django.conf import settings
+
+import json
+
 
 
 from accounts.models import Account
-from utils import querydict_to_dict
-from utils.errors import AccountAlreadyExists, PasswordValidationError
+from utils import is_in_debug_mode
+from utils.errors import AccountAlreadyExists, InvalidAuthentication, PasswordValidationError
 
 # Create your views here.
 
@@ -32,8 +37,8 @@ def is_username_valid_api_view(request) -> Response:
 class CreateAccounAPIView(APIView):
     permission_classes = [AllowAny]
 
-    def post(self, request) -> Response:
-        data = querydict_to_dict(request.POST)
+    def post(self, request: Request) -> Response:
+        data = json.loads(request.body)
         response_data = {}
         _status = status.HTTP_400_BAD_REQUEST
         try:
@@ -72,7 +77,7 @@ class CreateAccounAPIView(APIView):
                 response_data = {
                     "error": f"Unable to accept the request. Try again later"
                 }
-                if settings.DEBUG:
+                if is_in_debug_mode():
                     raise err
                 else:
                     logger.error(err)
@@ -86,10 +91,11 @@ class CreateAccounAPIView(APIView):
 class AccountLoginAPIView(APIView):
     permission_classes = [AllowAny]
 
-    def post(self, request) -> Response:
+    def post(self, request: Request) -> Response:
         _status = status.HTTP_401_UNAUTHORIZED
         response_body = {}
-        data = querydict_to_dict(request.POST)
+        data = json.loads(request.body)
+        
         try:
             assert "username" in data, "Username is required for login"
             assert "password" in data, "Password is required for login"
@@ -120,7 +126,7 @@ class AccountLoginAPIView(APIView):
                 response_body = {
                     "error": f"Unable to accept the request. Try again later"
                 }
-                if settings.DEBUG:
+                if is_in_debug_mode():
                     raise err
                 else:
                     logger.error(err)
@@ -128,3 +134,57 @@ class AccountLoginAPIView(APIView):
                 
         finally:
             return Response(response_body, status=_status)
+
+
+
+class EditAccountAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    ACCOUNT_EDIT_WHITELIST_FIELDS = ("contact", "description", "avatar", "banner_image")
+    USER_EDIT_WHITELIST_FIELDS = ("first_name", "last_name")
+    serializer_class = AccountSerializer
+
+    def post(self, request: Request) -> Response:
+        _status = status.HTTP_401_UNAUTHORIZED
+        response_body = {}
+
+        try:
+            data = json.loads(request.body)
+            if not request.account:
+                raise InvalidAuthentication("")
+            account: Account = request.account
+            user: User = account.user
+            if "password" in data:
+                password_packet: Dict[str, str] = data["password"]
+                assert "old_password" in password_packet and password_packet["old_password"] and len(password_packet["old_password"]) > 0, "Provided data is incomplete or invalid"
+                if not user.check_password(password_packet["old_password"]):
+                    raise InvalidAuthentication(account.username)
+                user.set_password(password_packet["password"])
+                user.save()
+                _status = status.HTTP_202_ACCEPTED
+                response_body = {"data": "Password change is sucessful"}
+            else:
+                for key, packet in data.items():
+                    if key in self.ACCOUNT_EDIT_WHITELIST_FIELDS and "data" in packet and len(packet["data"]) > 0:
+                        setattr(account, key, packet["data"])
+                    elif key in self.USER_EDIT_WHITELIST_FIELDS and "data" in packet and len(packet["data"]) > 0:
+                        setattr(user, key, packet["data"])
+                account.save()
+                user.save()
+                _status = status.HTTP_202_ACCEPTED
+                response_body["data"] = self.serializer_class(account).data
+                response_body["data"]["full_name"] = user.get_full_name()
+                response_body["data"]["first_name"] = user.first_name
+                response_body["data"]["last_name"] = user.last_name
+
+        except Exception as err:
+            if isinstance(err, InvalidAuthentication):
+                _status = status.HTTP_403_FORBIDDEN
+                response_body = {"error": repr(err)}
+            elif isinstance(err, (AssertionError, ValueError, KeyError)):
+                _status = status.HTTP_400_BAD_REQUEST
+                response_body = {"error": repr(err)}
+            else:
+                logger.error(err)
+        return Response(response_body, status=_status)

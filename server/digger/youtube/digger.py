@@ -5,9 +5,9 @@ from digger.base.types import Digger, PlatformMetricModel
 from digger.youtube.request_manager import YoutubeRequestManager
 from digger.youtube.request_struct import *
 from digger.youtube.response_struct import *
-from digger.youtube.types import MetricRecord
+from digger.youtube.types import MetricRecord, YoutubePlatformMetrics
 from insights.models import YoutubeHandleMetricModel
-from utils import reformat_age_gender
+from utils import merge_metric, reformat_age_gender
 from utils.types import Platform
 
 
@@ -171,8 +171,21 @@ class YoutubeDigger(Digger):
                 metrics.append(insights)
         return metrics
     
-    def calculate_platform_metric(self, account: Account) -> PlatformMetricModel:
-        return super().calculate_platform_metric(account)
+    def calculate_platform_metric(self, account: Account, start_date: datetime = None, end_date: datetime = get_current_time()) -> YoutubePlatformMetrics:
+        query_lookup: Q = Q(handle__account=account)
+        if start_date is not None:
+            query_lookup  &= Q(created_on__gte=start_date)
+        query_lookup &= Q(expired_on__gte=end_date)
+        handle_metric_queryset: QuerySet[YoutubeHandleMetricModel] = YoutubeHandleMetricModel.objects.filter(query_lookup)
+        
+        platform_metric = {}
+        for metric  in handle_metric_queryset:
+            platform_metric = merge_metric(platform_metric, metric.get_collective_metrics())
+        return YoutubePlatformMetrics(**platform_metric)
+            
+
+            
+
         
                 
 

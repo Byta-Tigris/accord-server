@@ -1,4 +1,5 @@
 from typing import Dict, Union
+from utils import is_in_debug_mode
 from utils.types import RequestMethod
 from .types import AbstractRequestManager, AbstractRequestStruct, AbstractResponseStruct
 from log_engine.log import logger
@@ -39,7 +40,7 @@ class BaseRequestManager(AbstractRequestManager):
             data = res.json()
             return request.response_struct.from_data(res.url, res.status_code, data)            
         except Exception as exc:
-            if settings.DEBUG:
+            if is_in_debug_mode():
                 raise exc
             else:
                 logger.error(exc)

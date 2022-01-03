@@ -1,7 +1,9 @@
 from typing import Any, Dict, List, Optional, Union
 from django.contrib.auth.models import User
 from django.urls import reverse
+from requests.models import Response
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 import json
 from dataclasses import dataclass
@@ -225,7 +227,70 @@ class TestAccountViews(APITestCase):
 
 
     def test_edit_account(self) -> None:
-        pass
+        account: Account = Account.objects.create(
+            email="bytatigrisdev@gmail.com",
+            first_name="Byta",
+            last_name="Tigris",
+            username="bitatigris",
+            entity_type=EntityType.Creator,
+            password="helloword103",
+            description="none cord",
+
+        )
+
+        token_obj: Token = Token.objects.create(user=account.user)
+
+        login_res: Response = self.client.post(reverse('login-account'), data={"username": account.username, "password": "helloword103"}, format='json')
+        self.assertEqual(login_res.status_code, 202)
+        data = login_res.json()
+        self.assertTrue("token" in data)
+        token = data["token"]
+        self.assertEqual(token, token_obj.key)
+        headers = {"Authorization": f"Token {token}", "Content-Type": "application/json"}
+        url = reverse('edit-account')
+
+        # edit description
+        old_description = account.description
+        description = "novo chlorae"
+        res = self.client.post(url, data=json.dumps({"description": {"data": description}}), headers=headers, format='json')
+        print(res, res.json())
+        self.assertEqual(res.status_code, 202)
+        body = res.json()
+        self.assertTrue("data" in body and len(body["data"]) > 0)
+        self.assertNotEqual(old_description, body["data"]["description"])
+        self.assertEqual(description, body["data"]["description"])
+
+        # edit first_name
+        full_name = account.user.get_full_name()
+        old_first_name = account.user.first_name
+        first_name = "Nokai"
+        res = self.client.post(url, data=json.dumps({"first_name": {"data": first_name}}), headers=headers)
+        self.assertEqual(res.status_code, 202)
+        body = res.json()
+        self.assertTrue("data" in body and len(body["data"]) > 0)
+        self.assertNotEqual(old_first_name, body["data"]["first_name"])
+        self.assertEqual(first_name, body["data"]["first_name"])
+        self.assertNotEqual(full_name, body["data"]["full_name"])
+
+        #edit password
+        old_password = "helloword103"
+        res = self.client.post(url, data=json.dumps({"password": {"old_password": old_password, "password": "helloworld904"}}), headers=headers)
+        self.assertEqual(res.status_code, 202)
+
+
+        #editing multiple fields
+        last_name = "Loda"
+        avatar = "https://testurl.com/"
+        res = self.client.post(url, data=json.dumps({"last_name": {"data": last_name}, "avatar":{"data": avatar}}), headers=headers)
+        self.assertEqual(res.status_code, 202)
+        body = res.json()
+        self.assertTrue("data" in body and len(body["data"]) > 0)
+        self.assertEqual(last_name, body["data"]["last_name"])
+        self.assertEqual(avatar, body["data"]["avatar"])
+
+
+
+
 
     def test_retrieve_creator_account(self) -> None:
         pass

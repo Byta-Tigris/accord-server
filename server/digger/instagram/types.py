@@ -112,14 +112,24 @@ class IGUser:
         return vars(self)
 
 
-@dataclass
+
+
+
 class FacebookPageData:
-    name: str
-    id: str
-    instagram_business_account: Optional[IGUser] = None
+
+
+    def __init__(self, name: str, id: str, instagram_business_account: Union[Dict[str, Union[str, int]], IGUser, None] = None) -> None:
+        self.name = name
+        self.id = id
+        self.instagram_business_account = instagram_business_account
+        if instagram_business_account is not None and not isinstance(self.instagram_business_account, IGUser):
+            self.instagram_business_account = IGUser(**self.instagram_business_account)
 
     def to_kwargs(self) -> Dict[str, Union[str, Dict[str, Union[str, int]]]]:
-        return vars(self)
+        data = vars(self)
+        if self.instagram_business_account is not None:
+            data["instagram_business_account"] = self.instagram_business_account.to_kwargs()
+        return data
 
 
 
@@ -161,7 +171,7 @@ class InstagramStoryMetrics:
 
 class InstagramPlalformMetric(PlatformMetricModel):
     
-    def __init__(self, follower_count: int, media_count: int, impressions: int, reach: int, profile_views: int, audience_city: Dict[str, int], audience_gender_age: Dict[str, int], audience_country: Dict[str, int]) -> None:
+    def __init__(self, follower_count: Dict[str, int], media_count: Dict[str, int], impressions: Dict[str, int], reach: Dict[str, int], profile_views: Dict[str, int], audience_city: Dict[str, int], audience_gender_age: Dict[str, int], audience_country: Dict[str, int]) -> None:
         self.follower_count = follower_count
         self.media_count = media_count
         self.impressions = impressions

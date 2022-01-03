@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 from accounts.models import Account, SocialMediaHandle
@@ -33,6 +34,7 @@ class InstagramDigger(Digger):
             access_token = handle.access_token
 
         request = FacebookPageAccountsRequest(access_token)
+        # breakpoint()
         response: FacebookPagesAccountsResponse = request(self.request_manager)
         handle_uids = handle_queryset.values_list('handle_uid', flat=True)
         recent_uids: List[str] = []
@@ -89,8 +91,8 @@ class InstagramDigger(Digger):
 
     def update_handle_insights(self, social_media_handle: SocialMediaHandle, save: bool=True) -> InstagramHandleMetricModel:
         handle_metric: InstagramHandleMetricModel = InstagramHandleMetricModel.objects.get_or_create(handle=social_media_handle)
-        deomgraphic_request = InstagramUserDemographicInsightsRequest(social_media_handle.handle_uid, access_token=social_media_handle.access_token)
-        demographic_response: InstagramCarouselMediaInsightsResponse = deomgraphic_request(self.request_manager)        
+        demographic_request = InstagramUserDemographicInsightsRequest(social_media_handle.handle_uid, access_token=social_media_handle.access_token)
+        demographic_response: InstagramUserDemographicInsightsResponse = demographic_request(self.request_manager)        
         handle_metric.set_metrics_from_user_demographic_response(demographic_response)
         user_insights_request = InstagramUserInsightsRequest(social_media_handle.handle_uid, social_media_handle.access_token)
         user_insights_request: InstagramUserInsightsResponse = user_insights_request(self.request_manager)
@@ -113,21 +115,15 @@ class InstagramDigger(Digger):
         return metrics
     
 
-    def calculate_platform_metric(self, account: Account) -> InstagramPlalformMetric:
-        handle_metrics: QuerySet[InstagramHandleMetricModel] = InstagramHandleMetricModel.objects.filter(
-            Q(handle__account=account) & Q(platform=Platform.Instagram)
-        )
+    def calculate_platform_metric(self, account: Account, start_date: datetime = None, end_date: datetime = get_current_time()) -> InstagramPlalformMetric:
+        query_lookup: Q = Q(handle__account=account)
+        if start_date is not None:
+            query_lookup &= Q(created_on__gte=start_date)
+        query_lookup &= Q(expired_on__gte=end_date)
+        handle_metrics: QuerySet[InstagramHandleMetricModel] = InstagramHandleMetricModel.objects.filter(query_lookup)
         platform_metric = {}
         for metric in handle_metrics:
-            for key, value in metric.get_collective_metrics().items():
-                if key in ["impressions", "reach", "profile_views", "follower_count", "media_count"]:
-                    if key not in platform_metric:
-                        platform_metric[key] = 0
-                    platform_metric[key] += value["total"]
-                elif key in ['audience_city', 'audience_gender_age',"audience_country"]:
-                    if key not in platform_metric:
-                        platform_metric[key] = {}
-                    platform_metric[key] = merge_metric(platform_metric[key],value)
+            platform_metric = merge_metric(platform_metric, metric.get_collective_metrics())
         return InstagramPlalformMetric(**platform_metric)
     
     

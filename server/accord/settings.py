@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 
 import os
-from dotenv import load_dotenv, dotenv_values
+from dotenv import load_dotenv
 
 ############ CRYPTOGRAPHY IMPORTS    #############################################
 from cryptography.hazmat.backends import default_backend as default_crypto_backend
@@ -38,7 +38,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-(j%czj2n#g@&ya1*#=)9*$yb0c_tz-ts-+f9u2neo8=43d78u='
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', False) == "True"
 
 
 
@@ -84,9 +84,10 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'accord.middlewares.AccountAuthenticationMiddleware', # Custom middleware
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'accord.middlewares.AccountAuthenticationMiddleware', # Custom middleware
+    
     
 ]
 
@@ -126,8 +127,8 @@ WSGI_APPLICATION = 'accord.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'accord' if not DEBUG else 'accord_test_db',
+        'ENGINE': 'django.db.backends.postgresql', #'django.contrib.gis.db.backends.postgis',
+        'NAME': 'accord',
         'USER':  os.getenv("ACCORD_POSTGRES_USERNAME") if not DEBUG else 'postgres',
         'PASSWORD': os.getenv("ACCORD_POSTGRES_PASSWORD") if not DEBUG else 'krispi@103904',
         'HOST': 'localhost',

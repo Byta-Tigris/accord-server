@@ -15,10 +15,8 @@ class SocialMediaHandleMetricsManager(models.Manager):
     def before_create(self, metric: models.Model, **kwargs) -> models.Model:
         return metric
 
-    def create(self, **kwargs: Any) -> models.Model :
+    def create(self, handle: 'SocialMediaHandle', **kwargs: Any) -> models.Model :
         _platform = self.platform
-        assert "handle" in kwargs, "Social media handle must be provided"
-        handle: SocialMediaHandle = kwargs["handle"]
         if "platform" in kwargs:
             _platform = kwargs["platform"]
         elif "platform" not in kwargs and _platform is None:
@@ -30,7 +28,7 @@ class SocialMediaHandleMetricsManager(models.Manager):
             expired_on=get_handle_metrics_expire_time(),
             meta_data={}
         )
-        metric = self.before_create(**kwargs)
+        metric = self.before_create(metric, **kwargs)
         metric.save()
         return metric
     

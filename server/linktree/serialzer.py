@@ -1,6 +1,6 @@
 
 from typing import Dict, List, Union
-from .models import LinkCase, LinkWall
+from .models import LinkWall
 from django.urls import reverse
 from log_engine.log import logger
 

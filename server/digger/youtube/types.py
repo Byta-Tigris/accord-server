@@ -2,6 +2,7 @@ from datetime import datetime
 import string
 from typing import Any, Dict, List, Tuple, Union
 import pandas as pd
+from digger.base.types import PlatformMetricModel
 from utils import DATE_FORMAT, date_to_string, get_current_time, get_datetime_from_youtube_response, get_tag_from_youtube_topics
 
 
@@ -340,3 +341,7 @@ class YTMetrics:
                 my_kwargs[key][day] |= data
         return YTMetrics(**my_kwargs)
 
+
+
+class YoutubePlatformMetrics(PlatformMetricModel, YTMetrics):
+    pass
