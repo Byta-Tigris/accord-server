@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
+from django.core.exceptions import BadRequest, ValidationError
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes
@@ -19,7 +19,8 @@ import json
 
 from accounts.models import Account
 from utils import is_in_debug_mode
-from utils.errors import AccountAlreadyExists, InvalidAuthentication, PasswordValidationError
+from utils import errors
+from utils.errors import AccountAlreadyExists, AccountDoesNotExists, InvalidAuthentication, PasswordValidationError
 
 # Create your views here.
 
@@ -148,9 +149,9 @@ class EditAccountAPIView(APIView):
     def post(self, request: Request) -> Response:
         _status = status.HTTP_401_UNAUTHORIZED
         response_body = {}
-
         try:
-            data = json.loads(request.body)
+            body = request.body
+            data = json.loads(body)
             if not request.account:
                 raise InvalidAuthentication("")
             account: Account = request.account
@@ -185,6 +186,46 @@ class EditAccountAPIView(APIView):
             elif isinstance(err, (AssertionError, ValueError, KeyError)):
                 _status = status.HTTP_400_BAD_REQUEST
                 response_body = {"error": repr(err)}
+            else:
+                logger.error(err)
+        return Response(response_body, status=_status)
+
+
+
+class RetrieveProfileAPIView(APIView):
+
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [AllowAny, IsAuthenticated]
+    serializer_class = AccountSerializer
+
+    def get_account_details(self, account: Account) -> Dict[str, str]:
+        return self.serializer_class(account).data
+ 
+
+    def get(self, request: Request, **kwargs) -> Response:
+        username: str = kwargs.get("username", None)
+        _status = status.HTTP_200_OK
+        response_body = {}
+        try:
+            account: Account = request.account
+            if username is None and account is None:
+                raise BadRequest()    
+            if (account and username and account.username != username) or (account is None and username is not None):
+                account_queryset: QuerySet[Account] = Account.objects.filter(username=username)
+                if not account_queryset.exists():
+                    raise AccountDoesNotExists(username)
+                account: Account = account_queryset.first()
+            response_body["data"] = self.get_account_details(account)
+            response_body["data"]["is_account_owner"] = (username is not None and account is not None and account.username == username) or (username is None and account is not None)
+
+        except Exception as err:
+            _status = status.HTTP_400_BAD_REQUEST
+            response_body = {}
+            if isinstance(err, AccountDoesNotExists):
+                _status = status.HTTP_404_NOT_FOUND
+                response_body["error"] = f"No account related with username {username} was found"
+            elif isinstance(err, BadRequest):
+                response_body["error"] = f"Bad request parameters"
             else:
                 logger.error(err)
         return Response(response_body, status=_status)

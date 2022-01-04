@@ -1,4 +1,8 @@
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
+
+from django.db.models.query import QuerySet
+
+from utils import merge_metric
 
 
 
@@ -42,7 +46,8 @@ class AbstractDigger:
 
 
 class PlatformMetricModel:
-    ...
+    
+    totals_record: Dict[str, Dict[str, Dict[str, Union[int, float]]]]
 
 class CreatorMetricModel: 
     """
@@ -136,3 +141,28 @@ class Digger(AbstractDigger):
         Every digger will implement 
         """
         pass
+
+    def get_total_platform_metric(self, handle_metric_queryset:QuerySet['SocialMediaHandleMetrics']) -> Tuple[Dict[str, Dict[str, Union[int, float]]], Dict[str, Dict[str, Union[int, float]]]]:
+        platform_metric = {}
+        total_metric = {"totals":{}, "grand_totals": {}}
+        for handle in handle_metric_queryset:
+            totals_data = handle.get_total_sum_of_metric()
+            for metric_name, metric_value in vars(handle.get_collective_metrics()).items():
+                if metric_name.startswith('_'):
+                    continue
+                if metric_name not in platform_metric:
+                    platform_metric[metric_name] = {}
+                for date_str, metric_data in metric_value.items():
+                    if date_str not in platform_metric[metric_name]:
+                        platform_metric[metric_name][date_str] = {}
+                    platform_metric[metric_name][date_str] = merge_metric(platform_metric[metric_name][date_str], metric_data)
+                if metric_name in totals_data["totals"]:
+                    if metric_name not in total_metric["totals"]:
+                        total_metric['totals'][metric_name] = {}
+                    total_metric["totals"][metric_name] = merge_metric(total_metric["totals"][metric_name], totals_data["totals"][metric_name])
+                if metric_name in totals_data["grand_totals"]:
+                    if metric_name not in total_metric["grand_totals"]:
+                        total_metric['grand_totals'][metric_name] = {}
+                    total_metric["grand_totals"][metric_name] = merge_metric(total_metric["grand_totals"][metric_name], totals_data["grand_totals"][metric_name])
+
+        return platform_metric

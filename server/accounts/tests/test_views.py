@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Union
 from django.contrib.auth.models import User
+from django.test.client import Client
 from django.urls import reverse
 from requests.models import Response
 from rest_framework import status
@@ -246,25 +247,31 @@ class TestAccountViews(APITestCase):
         self.assertTrue("token" in data)
         token = data["token"]
         self.assertEqual(token, token_obj.key)
-        headers = {"Authorization": f"Token {token}", "Content-Type": "application/json"}
+
+        content_type = "application/json"
         url = reverse('edit-account')
+
+        autheticated_client = Client(HTTP_AUTHORIZATION=f"Token {token}", HTTP_CONTENT_TYPE=content_type)
 
         # edit description
         old_description = account.description
         description = "novo chlorae"
-        res = self.client.post(url, data=json.dumps({"description": {"data": description}}), headers=headers, format='json')
-        print(res, res.json())
+        res = autheticated_client.post(url, data={"description": {"data": description}}, content_type=content_type)
+        print(res, res.content)
         self.assertEqual(res.status_code, 202)
         body = res.json()
         self.assertTrue("data" in body and len(body["data"]) > 0)
         self.assertNotEqual(old_description, body["data"]["description"])
         self.assertEqual(description, body["data"]["description"])
 
+
+        
+
         # edit first_name
         full_name = account.user.get_full_name()
         old_first_name = account.user.first_name
         first_name = "Nokai"
-        res = self.client.post(url, data=json.dumps({"first_name": {"data": first_name}}), headers=headers)
+        res = autheticated_client.post(url, data={"first_name": {"data": first_name}}, content_type=content_type)
         self.assertEqual(res.status_code, 202)
         body = res.json()
         self.assertTrue("data" in body and len(body["data"]) > 0)
@@ -274,14 +281,14 @@ class TestAccountViews(APITestCase):
 
         #edit password
         old_password = "helloword103"
-        res = self.client.post(url, data=json.dumps({"password": {"old_password": old_password, "password": "helloworld904"}}), headers=headers)
+        res = autheticated_client.post(url, data={"password": {"old_password": old_password, "password": "helloworld904"}}, content_type=content_type)
         self.assertEqual(res.status_code, 202)
 
 
         #editing multiple fields
         last_name = "Loda"
         avatar = "https://testurl.com/"
-        res = self.client.post(url, data=json.dumps({"last_name": {"data": last_name}, "avatar":{"data": avatar}}), headers=headers)
+        res = autheticated_client.post(url, data={"last_name": {"data": last_name}, "avatar":{"data": avatar}}, content_type=content_type)
         self.assertEqual(res.status_code, 202)
         body = res.json()
         self.assertTrue("data" in body and len(body["data"]) > 0)

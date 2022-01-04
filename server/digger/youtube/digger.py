@@ -178,10 +178,10 @@ class YoutubeDigger(Digger):
         query_lookup &= Q(expired_on__gte=end_date)
         handle_metric_queryset: QuerySet[YoutubeHandleMetricModel] = YoutubeHandleMetricModel.objects.filter(query_lookup)
         
-        platform_metric = {}
-        for metric  in handle_metric_queryset:
-            platform_metric = merge_metric(platform_metric, metric.get_collective_metrics())
-        return YoutubePlatformMetrics(**platform_metric)
+        pplatform_metric, total_data = self.get_total_platform_metric(handle_metric_queryset)
+        platform_metric_model = YoutubePlatformMetrics(**pplatform_metric)
+        platform_metric_model.totals_record = total_data
+        return platform_metric_model
             
 
             

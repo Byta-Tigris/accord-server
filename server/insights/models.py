@@ -36,8 +36,8 @@ class SocialMediaHandleMetrics(models.Model):
 
     def _calculate_collective_metrics(self) -> Dict[str, Union[int ,float]]:
         data = {}
-        data["follower_count"] = follower_count[-1] if len((follower_count := list(self.follower_count.values()))) > 0 else 0
-        data["media_count"] = media_count[-1] if len((media_count := list(self.media_count.values()))) > 0 else 0
+        data["follower_count"] = self.follower_count
+        data["media_count"] = self.media_count
         return data
 
 
@@ -51,6 +51,25 @@ class SocialMediaHandleMetrics(models.Model):
         """
         data = self._calculate_collective_metrics()
         return self.calculate_collective_metrics(**data)
+    
+    def set_total_of_metrics(self, metric_name: str) -> None:
+        pass
+
+    def calculate_collective_metrics(self, **data) -> Dict[str, Union[int, float]]:
+        for key, value in vars(self).items():
+            if not key.startswith('_') and key not in ("handle", "id", "platform", "created_on", "expired_on", "meta_data"):
+                data[key] = value
+        return data
+    
+    def get_total_sum_of_metric(self) -> Dict[str, Dict[str, Union[int, float]]]:
+        data = {}
+        data["totals"] = self.meta_data.get("totals", {})
+        data["prev_totals"] = self.meta_data.get("prev_totals", {})
+        data["grand_totals"] = {}
+        for metric_name, metric_value in data["totals"].items():
+            data["grand_totals"][metric_name] = merge_metric(data["totals"][metric_name], data["prev_totals"][metric_name])
+        return data
+
 
     class Meta:
         abstract = True
@@ -83,37 +102,38 @@ class InstagramHandleMetricModel(SocialMediaHandleMetrics):
 
 
     def set_metrics_from_user_insight_response(self, response: 'InstagramUserInsightsResponse') -> None:
+        self.set_total_of_metrics("follower_count")
+        self.set_total_of_metrics("media_count")
         self.impressions |= response.impressions
+        self.set_total_of_metrics("impressions")
         self.reach |= response.reach
+        self.set_total_of_metrics("reach")
         self.follower_count |= response.follower_count
+        self.set_total_of_metrics("follower_count")
         self.profile_views |= response.profile_views
+        self.set_total_of_metrics("impressions")
+
     
     def set_metrics_from_user_demographic_response(self, response: 'InstagramUserDemographicInsightsResponse') -> None:
         self.audience_city |= response.audience_city
+        self.set_total_of_metrics("audience_city")
         self.audience_gender_age |= response.audience_gender_age
+        self.set_total_of_metrics("audience_gender_age")
         self.audience_country |= response.audience_country
-
-    @staticmethod
-    def merge_metric(metrics: Dict[str, Dict[str, int]]) -> Dict[str, Union[int, float]]:
-        data = {}
-        for metric in metrics.values():
-            for key, value in metric.items():
-                if key not in data:
-                    data[key] = 0
-                data[key] += value
-        return data
+        self.set_total_of_metrics("audience_country")
     
-
-    def calculate_collective_metrics(self, **data) -> Dict[str, Union[int ,float]]:
-        get_total = lambda _map: [_inner_map["TOTAL"] for _inner_map in _map.values()]
-        get_last_value =  lambda _map: list(values)[-1] if len((values := _map.values())) > 0 else {}
-        data["impressions"] = {"TOTAL": sum(get_total(self.impressions))}
-        data["reach"] = {"TOTAL": sum(get_total(self.reach))}
-        data["profile_views"] = {"TOTAL": sum(get_total(self.profile_views))}
-        data["audience_city"] = get_last_value(*self.audience_city.values())
-        data["audience_gender_age"] = get_last_value(*self.audience_gender_age.values())
-        data["audience_country"] = get_last_value(*self.audience_country.values())
-        return data
+    def set_total_of_metrics(self, metric_name: str) -> None:
+        if "totals"  not in self.meta_data:
+            self.meta_data["totals"] = {}
+        if metric_name not in ["audience_city", "audience_gender_age", "audience_country"]:
+            if (attr := getattr(self, metric_name, None)) is not None:
+                self.meta_data["totals"][metric_name] = merge_metric(*attr.values())
+        else:
+            if (attr := getattr(self, metric_name, None)) is not None:
+                self.meta_data["totals"][metric_name] = list(attr.values())[-1]
+    
+    
+            
 
 
 
@@ -196,6 +216,8 @@ class YoutubeHandleMetricModel(SocialMediaHandleMetrics):
         """
         Combines new metrics with the current data and recalculate the totals and engagements
         """
+        self.set_total_of_metrics("follower_count")
+        self.set_total_of_metrics("media_count")
         for property_name, property_value in metrics.to_dict().items():
             if property_value is None or len(property_value) == 0:
                 continue
@@ -212,10 +234,6 @@ class YoutubeHandleMetricModel(SocialMediaHandleMetrics):
         if save:
             self.save()
     
-    def calculate_collective_metrics(self, **data) -> Dict[str, Union[int, float]]:
-        total: Dict[str, Union[int, float]] = self.meta_data["totals"]
-        data |= total
-        return data
 
 
 

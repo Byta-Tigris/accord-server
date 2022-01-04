@@ -5,7 +5,7 @@ from typing import  Any, MutableMapping, Optional, Tuple, Union
 from django.db.models.query_utils import Q
 from accounts.models import SocialMediaHandle
 
-from utils import get_current_time, get_handle_metrics_expire_time
+from utils import get_current_time, get_handle_metrics_expire_time, merge_metric
 from utils.types import Platform
 
 
@@ -56,6 +56,18 @@ class SocialMediaHandleMetricsManager(models.Manager):
         if model:
             return model
         return self.create(handle=handle, **kwargs)
+    
+    def retain_old_metric_total(self, metric: models.Model) -> models.Model:
+        queryset: QuerySet = self.filter(Q(handle=metric.handle) & Q(expired_on__lte=metric.created_on)).order_by('-expired_on')
+        if queryset.exists():
+            old_metric: models.Model = queryset.first()
+            totals = {}
+            for key, value in old_metric.meta_data.get("totals").items():
+                if key in old_metric.meta_data["prev_totals"]:
+                    totals[key] = merge_metric(value, old_metric.meta_data["prev_totals"][key])
+            metric.meta_data["prev_totals"] = totals
+        return metric
+
 
 
 class InstagramHandleMetricsManager(SocialMediaHandleMetricsManager):
@@ -67,6 +79,7 @@ class InstagramHandleMetricsManager(SocialMediaHandleMetricsManager):
             metric.set_metrics_from_user_insight_response(kwargs["user_insight"])
         if "user_demographic" in kwargs:
             metric.set_metrics_from_user_demographic_response(kwargs["user_demographic"])
+        metric = self.retain_old_metric_total(metric)
         return metric
 
 
@@ -75,16 +88,7 @@ class YoutubeHandleMetricsManager(SocialMediaHandleMetricsManager):
     platform = Platform.Youtube
 
     def before_create(self, metric: models.Model, **kwargs) -> models.Model:
-        queryset: QuerySet = self.filter(Q(handle=metric.handle))
-        if queryset.exists():
-            ## Transfer previous informations stored in meta data to new metric
-            old_metric = queryset.first()
-            totals = old_metric.meta_data.get("totals", {})
-            for key, value in old_metric.meta_data.get("prev_totals", {}).items():
-                if key not in totals:
-                    totals[key] = 0
-                totals[key] += value
-            metric.meta_data["prev_totals"] = totals
+        metric = self.retain_old_metric_total(metric)
         return metric
 
 
