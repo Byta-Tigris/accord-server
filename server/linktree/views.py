@@ -74,7 +74,7 @@ class RetrieveLinkWall(APIView):
     permission_classes = [AllowAny]
     linkwall_serializer = LinkWallSerializer()
 
-    def get(self, request: Request, username) -> Response:
+    def get(self, request: Request, username: str) -> Response:
         linkwall_queryset = LinkWall.objects.filter(account__username=username)
         if not linkwall_queryset.exists():
             return Response({"error": "No link wall related to such username"}, status=status.HTTP_404_NOT_FOUND)
