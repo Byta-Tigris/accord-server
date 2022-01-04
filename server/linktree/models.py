@@ -42,6 +42,11 @@ class LinkWall(models.Model):
         }
     }
     styles -- Style of the wall, css properties
+    {
+        class_name {
+            property_name: property_value
+        }
+    }
     """
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="link_tree_accounts")
     background_image = models.URLField(default="")
@@ -71,15 +76,16 @@ class LinkWall(models.Model):
                 "url": handle.handle_url
             })
             visited_urls.append(handle.handle_url)
-        for platform, handle_data in media_handles.items():
-            if handle_data["url"] not in visited_urls:
-                if platform not in transformed_handles:
-                    transformed_handles[platform] = []
-                transformed_handles[platform].append({
-                    "username": handle_data.get("username", None),
-                    "avatar": handle_data.get("avatar", None),
-                    "url": handle_data.get("url", None)
-                })
+        for platform, platform_handles in media_handles.items():
+            for handle_data in platform_handles:
+                if handle_data["url"] not in visited_urls:
+                    if platform not in transformed_handles:
+                        transformed_handles[platform] = []
+                    transformed_handles[platform].append({
+                        "username": handle_data.get("username", None),
+                        "avatar": handle_data.get("avatar", None),
+                        "url": handle_data.get("url", None)
+                    })
                 
         self.media_handles = transformed_handles
     

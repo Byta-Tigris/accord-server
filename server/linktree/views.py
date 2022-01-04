@@ -1,4 +1,5 @@
-from typing import Union
+import json
+from typing import Dict, Union
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.request import Request
@@ -10,7 +11,7 @@ from accounts.models import Account
 from linktree.models import LinkWall
 from linktree.serialzer import LinkWallSerializer
 
-from utils import querydict_to_dict
+from utils import is_in_debug_mode, querydict_to_dict
 
 
 
@@ -21,7 +22,10 @@ class CreateOrUpdateLinkWall(APIView):
     linkwall_serializer  = LinkWallSerializer()
 
     def post(self, request: Request, **kwargs) -> Response:
-        data = querydict_to_dict(request.POST)
+        """
+        Request Data Format
+        """
+        data: Dict = json.loads(request.body)
         response_data = {}
         _status = status.HTTP_404_NOT_FOUND
         if request.account is None:
@@ -29,28 +33,32 @@ class CreateOrUpdateLinkWall(APIView):
         else:
             account: Account = request.account
             try:
-                assert "links" in data, "Links must be provided for creating link tree"
-                linkwall_queryset = LinkWall.objects.select_related("links").filter(account=account)
+                linkwall_queryset = LinkWall.objects.filter(account=account)
                 if linkwall_queryset.exists():
                     linkwall = linkwall_queryset.first()
                 else:
+                    assert "links" in data, "Links must be provided in order to create link wall"
                     linkwall = LinkWall(account=account,
                                     avatar_image=account.avatar,
                                     description=account.description,
                                     display_name=account.user.get_full_name(),
                                     media_handles={},
-                                    styles={}
+                                    styles={},
+                                    links={}
                                     )
-                    for attr in ["background_image", "avatar_image","description", "display_name", "styles", "links"]:
-                        if attr in data:
-                            setattr(linkwall,attr, data.get(attr, ""))
-                    if "media_handles" in data:
-                        linkwall.set_media_handles(data.get("media_handles", {}))
-                    else:
-                        linkwall.sync_media_handles()
-                    linkwall.save()
-                    response_data = self.linkwall_serializer(linkwall)
-                    _status = status.HTTP_202_ACCEPTED
+                for attr in ["background_image", "avatar_image","description", "display_name", "styles", "links"]:
+                    if attr in data:
+                        if attr in ["links", "styles"]:
+                            setattr(linkwall, attr, data.get(attr, {}))
+                        else:
+                            setattr(linkwall, attr, data.get(attr, ""))
+                if "media_handles" in data:
+                    linkwall.set_media_handles(data.get("media_handles", {}))
+                else:
+                    linkwall.sync_media_handles()
+                linkwall.save()
+                response_data['data'] = self.linkwall_serializer(linkwall)
+                _status = status.HTTP_202_ACCEPTED
             except Exception as err:
                 _status = status.HTTP_400_BAD_REQUEST
                 if isinstance(err, AssertionError):
