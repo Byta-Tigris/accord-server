@@ -6,11 +6,11 @@ from requests.models import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
-import json
 from dataclasses import dataclass
 
 from accounts.models import Account
 from utils.types import EntityType
+from accounts.serializers import AccountSerializer
 
 
 @dataclass
@@ -53,6 +53,22 @@ class LoginFixtures:
 
 class TestAccountViews(APITestCase):
 
+    def setUp(self) -> None:
+        self.account: Account = Account.objects.create(
+            email="bytatigrisdev2022@gmail.com",
+            first_name="Byta",
+            last_name="Tigris",
+            username="bitatigris",
+            entity_type=EntityType.Creator,
+            password="helloword103",
+            description="none cord",
+
+        )
+        self.content_type = "application/json"
+        self.token_obj: Token = Token.objects.create(user=self.account.user)
+        self.autheticated_client = Client(HTTP_AUTHORIZATION=f"Token {self.token_obj.key}", HTTP_CONTENT_TYPE=self.content_type)
+        self.client = Client(HTTP_CONTENT_TYPE=self.content_type)
+
     def test_username_valid_view(self) -> None:
         url = reverse('username-valid')
         fixtures = [
@@ -65,9 +81,9 @@ class TestAccountViews(APITestCase):
             }
         ]
         for data in fixtures:
-            response = self.client.post(url, data)
+            response = self.client.post(url, data, content_type=self.content_type)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
-            res = json.loads(response.content)
+            res = response.json()
             self.assertTrue("is_valid" in res)
             self.assertEqual(res["is_valid"], data["is_valid"])
 
@@ -133,13 +149,13 @@ class TestAccountViews(APITestCase):
         fixtures = self.get_create_account_fixtures()
         url = reverse('create-account')
         for fixture in fixtures:
-            res = self.client.post(url, fixture.to_kwargs())
-            print(fixture.to_kwargs(), res)
+            res = self.client.post(url, fixture.to_kwargs(), content_type=self.content_type)
             if fixture.output_success:
+                print(res.json())
                 self.assertEqual(res.status_code, status.HTTP_201_CREATED)
             else:
                 self.assertNotEqual(res.status_code, status.HTTP_201_CREATED)
-            body = json.loads(res.content)
+            body = res.json()
             # print(body)
             if fixture.output_class == None:
                 self.assertTrue("error" in body)
@@ -178,8 +194,8 @@ class TestAccountViews(APITestCase):
 
         create_account_url = reverse('create-account')
         for account in accounts:
-            res = self.client.post(create_account_url, account.to_kwargs())
-            body = json.loads(res.content)
+            res = self.client.post(create_account_url, account.to_kwargs(), content_type=self.content_type)
+            body = res.json()
             account_tokens.append(body["token"])
 
 
@@ -213,13 +229,11 @@ class TestAccountViews(APITestCase):
             )
         ]
         url = reverse("login-account")
-        print(account_tokens)
         for fixture in fixtures:
-            res = self.client.post(url, fixture.to_kwargs())
-            print(fixture.to_kwargs(), res)
+            res = self.client.post(url, fixture.to_kwargs(), content_type=self.content_type)
             self.assertEqual(res.status_code, fixture.output_status)
             if fixture.output_status == status.HTTP_202_ACCEPTED:
-                body = json.loads(res.content)
+                body = res.json()
                 self.assertTrue(body["token"] in account_tokens)
                 if previous_token:
                     self.assertNotEqual(previous_token, body["token"])
@@ -228,35 +242,13 @@ class TestAccountViews(APITestCase):
 
 
     def test_edit_account(self) -> None:
-        account: Account = Account.objects.create(
-            email="bytatigrisdev@gmail.com",
-            first_name="Byta",
-            last_name="Tigris",
-            username="bitatigris",
-            entity_type=EntityType.Creator,
-            password="helloword103",
-            description="none cord",
 
-        )
-
-        token_obj: Token = Token.objects.create(user=account.user)
-
-        login_res: Response = self.client.post(reverse('login-account'), data={"username": account.username, "password": "helloword103"}, format='json')
-        self.assertEqual(login_res.status_code, 202)
-        data = login_res.json()
-        self.assertTrue("token" in data)
-        token = data["token"]
-        self.assertEqual(token, token_obj.key)
-
-        content_type = "application/json"
         url = reverse('edit-account')
 
-        autheticated_client = Client(HTTP_AUTHORIZATION=f"Token {token}", HTTP_CONTENT_TYPE=content_type)
-
         # edit description
-        old_description = account.description
+        old_description = self.account.description
         description = "novo chlorae"
-        res = autheticated_client.post(url, data={"description": {"data": description}}, content_type=content_type)
+        res = self.autheticated_client.post(url, data={"description": {"data": description}}, content_type=self.content_type)
         print(res, res.content)
         self.assertEqual(res.status_code, 202)
         body = res.json()
@@ -268,10 +260,10 @@ class TestAccountViews(APITestCase):
         
 
         # edit first_name
-        full_name = account.user.get_full_name()
-        old_first_name = account.user.first_name
+        full_name = self.account.user.get_full_name()
+        old_first_name = self.account.user.first_name
         first_name = "Nokai"
-        res = autheticated_client.post(url, data={"first_name": {"data": first_name}}, content_type=content_type)
+        res = self.autheticated_client.post(url, data={"first_name": {"data": first_name}}, content_type=self.content_type)
         self.assertEqual(res.status_code, 202)
         body = res.json()
         self.assertTrue("data" in body and len(body["data"]) > 0)
@@ -281,23 +273,77 @@ class TestAccountViews(APITestCase):
 
         #edit password
         old_password = "helloword103"
-        res = autheticated_client.post(url, data={"password": {"old_password": old_password, "password": "helloworld904"}}, content_type=content_type)
+        res = self.autheticated_client.post(url, data={"password": {"old_password": old_password, "password": "helloworld904"}}, content_type=self.content_type)
         self.assertEqual(res.status_code, 202)
 
 
         #editing multiple fields
         last_name = "Loda"
         avatar = "https://testurl.com/"
-        res = autheticated_client.post(url, data={"last_name": {"data": last_name}, "avatar":{"data": avatar}}, content_type=content_type)
+        res = self.autheticated_client.post(url, data={"last_name": {"data": last_name}, "avatar":{"data": avatar}, "username": {"data": "testrone"}}, content_type=self.content_type)
         self.assertEqual(res.status_code, 202)
         body = res.json()
         self.assertTrue("data" in body and len(body["data"]) > 0)
         self.assertEqual(last_name, body["data"]["last_name"])
         self.assertEqual(avatar, body["data"]["avatar"])
+        self.assertEqual(body["data"]["username"], self.account.username)
+
+        # reset all data
+        rest_data = {
+            "description": {"data": self.account.description},
+            "first_name": {"data": self.account.user.first_name},
+            "last_name": {"data": self.account.user.last_name},
+            "avatar": {"data": self.account.avatar}
+        }
+        res = self.autheticated_client.post(url, data=rest_data, content_type=self.content_type)
+        self.assertEqual(res.status_code, 202)
 
 
 
 
 
     def test_retrieve_creator_account(self) -> None:
-        pass
+        account_dict = AccountSerializer(self.account).data
+
+        # Using me request
+        res = self.autheticated_client.get(reverse('retrieve-me'))
+        self.assertEqual(res.status_code, 200)
+        body: Dict[str, Dict[str, Union[str, bool]]] = res.json()
+        self.assertTrue("data" in body)
+        for key, value in body["data"].items():
+            if key in account_dict:
+                self.assertEqual(account_dict[key], value)
+        self.assertTrue(body["data"]["is_account_owner"])
+        
+        #using username
+        res = self.autheticated_client.get(reverse('retrieve-username', args=(self.account.username,)))
+        self.assertEqual(res.status_code, 200)
+        body: Dict[str, Dict[str, Union[str, bool]]] = res.json()
+        self.assertTrue("data" in body)
+        for key, value in body["data"].items():
+            if key in account_dict:
+                self.assertEqual(account_dict[key], value)
+        self.assertTrue(body["data"]["is_account_owner"])
+
+        another_account: Account = Account.objects.create(
+            email="bytatigrisdevanother@gmail.com",
+            password="helloworld123",
+            first_name="Another",
+            last_name="world",
+            entity_type = EntityType.Advertiser,
+            username="anotheraccount",
+            description="another_Account"
+        )
+
+        res = self.autheticated_client.get(reverse('retrieve-username', args=[another_account.username]))
+        self.assertEqual(res.status_code, 200)
+        body = res.json()
+        another_account_dict = AccountSerializer(another_account).data
+        for key, value in body["data"].items():
+            if key in another_account_dict:
+                self.assertEqual(another_account_dict[key], value)
+        print(body)
+        self.assertTrue(body["data"]["is_account_owner"] == False)
+
+
+

@@ -1,12 +1,14 @@
 from django.db import models
 import logging
 
+from utils import get_current_time
+
 # Create your models here.
 
 
 
 class DatabaseLogEntry(models.Model):
-    time = models.DateTimeField(auto_now_add=True)
+    time = models.DateTimeField(default=get_current_time)
     message = models.TextField()
     is_active = models.BooleanField(default=True)
     level = models.CharField(max_length=10, default='INFO')

@@ -28,7 +28,9 @@ from utils.errors import AccountAlreadyExists, AccountDoesNotExists, InvalidAuth
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def is_username_valid_api_view(request) -> Response:
-    username = request.POST['username']
+    body = request.body
+    post_data = json.loads(body)
+    username = post_data['username']
     data = {"is_valid": False, "username": username}
     if Account.is_valid_username_structure(username) and not Account.objects.check_username_exists(username):
         data["is_valid"] = True
@@ -216,7 +218,7 @@ class RetrieveProfileAPIView(APIView):
                     raise AccountDoesNotExists(username)
                 account: Account = account_queryset.first()
             response_body["data"] = self.get_account_details(account)
-            response_body["data"]["is_account_owner"] = (username is not None and account is not None and account.username == username) or (username is None and account is not None)
+            response_body["data"]["is_account_owner"] = (username is not None and request.account is not None and request.account.username == username) or (username is None and request.account is not None)
 
         except Exception as err:
             _status = status.HTTP_400_BAD_REQUEST
