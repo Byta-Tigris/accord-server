@@ -1,8 +1,10 @@
+import datetime
 from typing import Any, Dict, List, Tuple, Union
 
 from django.db.models.query import QuerySet
 
-from utils import merge_metric
+from utils import get_current_time, merge_metric
+from utils.datastructures import MetricTable
 
 
 
@@ -129,9 +131,10 @@ class Digger(AbstractDigger):
         """
         pass
 
-    def calculate_platform_metric(self, account: 'Account') -> PlatformMetricModel:
+    def calculate_platform_metric(self, account: 'Account',start_date: datetime = None, end_date: datetime = get_current_time()) -> MetricTable:
         """
         Calculates all the metrics from the social handle and updates the platfrom metric similarly
+        Return MetricTable
         """
         pass
     
@@ -139,6 +142,21 @@ class Digger(AbstractDigger):
         """
         Calculates creators overall insight and Update Creator insight metric\n
         Every digger will implement 
+        """
+        pass
+
+    def get_metric_table_from_queryset(self, queryset: QuerySet) -> MetricTable:
+        """
+        Returns MetricTable from the provided queryset
+        """
+        if queryset.exists():
+            return MetricTable(queryset.first().get_columns(), *list(queryset))
+        return MetricTable()
+
+    def get_handle_insights(self, handle: 'SocialMediaHandle', start_date: datetime = None, end_date: datetime = get_current_time()) -> MetricTable:
+        """
+        Returns MetricTable, containing all insights of the handle
+
         """
         pass
 

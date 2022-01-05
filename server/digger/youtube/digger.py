@@ -8,6 +8,7 @@ from digger.youtube.response_struct import *
 from digger.youtube.types import MetricRecord, YoutubePlatformMetrics
 from insights.models import YoutubeHandleMetricModel
 from utils import merge_metric, reformat_age_gender
+from utils.datastructures import MetricTable
 from utils.types import Platform
 
 
@@ -171,17 +172,21 @@ class YoutubeDigger(Digger):
                 metrics.append(insights)
         return metrics
     
-    def calculate_platform_metric(self, account: Account, start_date: datetime = None, end_date: datetime = get_current_time()) -> YoutubePlatformMetrics:
+    def calculate_platform_metric(self, account: Account, start_date: datetime = None, end_date: datetime = get_current_time()) -> MetricTable:
         query_lookup: Q = Q(handle__account=account)
         if start_date is not None:
             query_lookup  &= Q(created_on__gte=start_date)
         query_lookup &= Q(expired_on__gte=end_date)
         handle_metric_queryset: QuerySet[YoutubeHandleMetricModel] = YoutubeHandleMetricModel.objects.filter(query_lookup)
-        
-        pplatform_metric, total_data = self.get_total_platform_metric(handle_metric_queryset)
-        platform_metric_model = YoutubePlatformMetrics(**pplatform_metric)
-        platform_metric_model.totals_record = total_data
-        return platform_metric_model
+        return self.get_metric_table_from_queryset(handle_metric_queryset)
+    
+    def get_handle_insights(self, handle: 'SocialMediaHandle', start_date: datetime = None, end_date: datetime = ...) -> MetricTable:
+        query_lookup: Q = Q(handle=handle)
+        if start_date is not None:
+            query_lookup  &= Q(created_on__gte=start_date)
+        query_lookup &= Q(expired_on__gte=end_date)
+        handle_metric_queryset: QuerySet[YoutubeHandleMetricModel] = YoutubeHandleMetricModel.objects.filter(query_lookup)
+        return self.get_metric_table_from_queryset(handle_metric_queryset)
             
 
             

@@ -4,6 +4,7 @@ from django.db.models.query_utils import Q
 from accounts.models import Account, SocialMediaHandle
 from digger.base.types import Digger
 from insights.models import InstagramHandleMetricModel
+from utils.datastructures import MetricTable
 from .types import InstagramPlalformMetric
 from utils import date_to_string, get_current_time, merge_metric
 from utils.types import Platform
@@ -16,7 +17,7 @@ class InstagramDigger(Digger):
 
     request_manager = InstagramRequestManager()
 
-    def get_long_lived_token(self, account: Account, short_lived_token: str) -> FacebookLongLiveTokenResponse:
+    def get_long_lived_token(self, short_lived_token: str) -> FacebookLongLiveTokenResponse:
         request = FacebookLongLiveTokenRequest(short_lived_token)
         response: FacebookLongLiveTokenResponse = request(self.request_manager)
         return response
@@ -115,16 +116,21 @@ class InstagramDigger(Digger):
         return metrics
     
 
-    def calculate_platform_metric(self, account: Account, start_date: datetime = None, end_date: datetime = get_current_time()) -> InstagramPlalformMetric:
+    def calculate_platform_metric(self, account: Account, start_date: datetime = None, end_date: datetime = get_current_time()) -> MetricTable:
         query_lookup: Q = Q(handle__account=account)
         if start_date is not None:
             query_lookup &= Q(created_on__gte=start_date)
         query_lookup &= Q(expired_on__gte=end_date)
         handle_metrics: QuerySet[InstagramHandleMetricModel] = InstagramHandleMetricModel.objects.filter(query_lookup)
-        platform_metric, total_data = self.get_total_platform_metric(handle_metrics)
-        platform_metric_model = InstagramPlalformMetric(**platform_metric)
-        platform_metric_model.totals_record = total_data
-        return platform_metric_model
+        return self.get_metric_table_from_queryset(handle_metrics)
+    
+    def get_handle_insights(self, handle: 'SocialMediaHandle', start_date: datetime = None, end_date: datetime = ...) -> MetricTable:
+        query_lookup: Q = Q(handle=handle)
+        if start_date is not None:
+            query_lookup &= Q(created_on__gte=start_date)
+        query_lookup &= Q(expired_on__gte=end_date)
+        handle_metrics: QuerySet[InstagramHandleMetricModel] = InstagramHandleMetricModel.objects.filter(query_lookup)
+        return self.get_metric_table_from_queryset(handle_metrics)
     
     
         

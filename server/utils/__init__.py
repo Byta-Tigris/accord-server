@@ -102,6 +102,9 @@ def string_to_time(time_str: str) -> datetime:
     time_format = format_split[: len(time_split)]
     return datetime.strptime(time_str, "-".join(time_format))
 
+def string_to_date(date_str: str) -> datetime:
+    return datetime.strptime(date_str, DATE_FORMAT)
+
 
 def date_from_date_time(time: datetime) -> date:
     return time.date()
@@ -147,6 +150,17 @@ def merge_metric(*metrics_array: Dict[str, int]) -> Dict[str, Union[int, float]]
                 data[key] += value
         return data
 
+def subtract_merge(*metrics_array: Dict[str, Union[int, float]]) -> Dict[str, Union[int, float]]:
+    data = {}
+    if len(metrics_array) > 0:
+        data = metrics_array[0]
+        if len(metrics_array) > 1:
+            for metrics in metrics_array[1:]:
+                for key, value in metrics.items():
+                    if key in data:
+                        data[key] -= value
+    return data
 
 def is_in_debug_mode() -> bool:
     return os.getenv('DEBUG', False) == 'True'
+

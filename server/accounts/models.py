@@ -175,6 +175,8 @@ class Account(models.Model, AccountInterface):
     is_disabled_account -- Is the account disabled/banned from the platform (default=False)\n
     username -- unique username for each instance of account, different usernames must be selected\n
                 for different entity types
+    platform_specific_private_metric -- Key-Value pair of platform containing platform as key
+                and list of metric which are needed to be private
     """
     id = models.CharField(max_length=64, primary_key=True, default='')
     user = models.ForeignKey(User, related_name="user_account_relation", on_delete=models.CASCADE)
@@ -186,6 +188,7 @@ class Account(models.Model, AccountInterface):
     description = models.TextField(default="")
     avatar = models.URLField(default="")
     banner_image = models.URLField(default="")
+    platform_specific_private_metric = models.JSONField(default=dict)
 
     objects: AccountManager = AccountManager()
 
@@ -196,6 +199,20 @@ class Account(models.Model, AccountInterface):
     def enable_account(self) -> None:
         self.is_disabled_account = False
         self.save()
+    
+    def add_metric_to_private(self, platform: str, metric_name: str, save: bool = True) -> None:
+        if platform not in self.platform_specific_private_metric:
+            self.platform_specific_private_metric[platform] = []
+        if metric_name not in self.platform_specific_private_metric[platform]:
+            self.platform_specific_private_metric[platform].append(metric_name)
+        if save:
+            self.save()
+    
+    def remove_metric_from_private(self, platform: str, metric_name: str, save: bool = True) -> None:
+        if platform in self.platform_specific_private_metric and metric_name in self.platform_specific_private_metric[platform]:
+            self.platform_specific_private_metric[platform].remove(metric_name)
+        if save:
+            self.save()
     
     @staticmethod
     def is_valid_username_structure(username: str) -> bool:

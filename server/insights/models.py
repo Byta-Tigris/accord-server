@@ -1,14 +1,12 @@
-import datetime
-from typing import Any, Dict, List, Union
+from typing import Dict, List, Union
 from django.db import models
 
 from accounts.models import SocialMediaHandle
 from digger.youtube.types import YTMetrics
 from insights.managers import InstagramHandleMetricsManager, SocialMediaHandleMetricsManager, YoutubeHandleMetricsManager
-from utils import DATE_FORMAT, get_current_time, get_handle_metrics_expire_time, merge_metric
+from utils import DATE_FORMAT, get_current_time, get_handle_metrics_expire_time, merge_metric, subtract_merge
 from django.db.models import JSONField
 
-from utils.types import Platform
 
 
 # Create your models here.
@@ -31,8 +29,11 @@ class SocialMediaHandleMetrics(models.Model):
     expired_on = models.DateTimeField(default=get_handle_metrics_expire_time)
     follower_count = JSONField(default=dict)
     media_count = models.JSONField(default=dict)
+    meta_data = models.JSONField(default=dict)
 
     objects = SocialMediaHandleMetricsManager()
+
+    COLUMN_WHITELIST = ["id", "handle_id", "platform", "created_on", "expired_on", "meta_data"]
 
     def _calculate_collective_metrics(self) -> Dict[str, Union[int ,float]]:
         data = {}
@@ -69,7 +70,48 @@ class SocialMediaHandleMetrics(models.Model):
         for metric_name, metric_value in data["totals"].items():
             data["grand_totals"][metric_name] = merge_metric(data["totals"][metric_name], data["prev_totals"][metric_name])
         return data
+    
 
+    def get_metric_rows(self) -> Dict[str, Dict[str, Union[int, float]]]:
+        """
+        Return Metric data with 
+        date as key and value containing all metric_names and their value
+
+        for e.g
+        views = {'2020-10-21': {'SUBSCRIBE': 10, 'TOTAL': 34}}
+        age_gender = {'2020-10-21: {'M.age13-17': 24}}
+
+        @returns {'2020-10-21': {"VIEWS_SUBSCRIBE": 10, 
+                    "SUBSCRIBE_TOTAL": 34, "AGE_GENDER_M.age13-17": 24}}
+        """
+        metric_data = {}
+        for metric_name, value in vars(self).items():
+            if metric_name.startswith("_") or metric_name in self.COLUMN_WHITELIST:
+                continue
+            for date_str, metric_dict_value in value.items():
+                if date_str not in metric_data:
+                    metric_data[date_str] = {}
+                for metric_attr, metric_value in metric_dict_value.items():
+                    metric_data[date_str] |= {f"{metric_name.upper()}_{metric_attr}": metric_value}
+        return metric_data
+
+
+    def get_columns(self) -> List[str]:
+        columns = []
+        for key in vars(self).keys():
+            if not key.startswith("_") and key not in self.COLUMN_WHITELIST:
+                columns.append(key)
+        return columns
+
+
+    def get_prev_totals_row(self) -> Dict[str, Union[int, float]]:
+        """
+        Returns metric name and totals
+        @returns {"VIEWS_SUBSCRIBE": 10, 
+                    "SUBSCRIBE_TOTAL": 34, "AGE_GENDER_M.age13-17": 24}
+        from above example
+        """
+        pass
 
     class Meta:
         abstract = True
@@ -92,7 +134,7 @@ class InstagramHandleMetricModel(SocialMediaHandleMetrics):
     audience_gender_age = models.JSONField(default=dict)
     audience_country = models.JSONField(default=dict)
     profile_views = models.JSONField(default=dict)
-    meta_data = models.JSONField(default=dict)
+    
 
     objects = InstagramHandleMetricsManager()
     update_fields = ['follower_count' ,'media_count', 'impressions',
@@ -112,15 +154,24 @@ class InstagramHandleMetricModel(SocialMediaHandleMetrics):
         self.set_total_of_metrics("follower_count")
         self.profile_views |= response.profile_views
         self.set_total_of_metrics("impressions")
+    
+
+    def reduce_audience_data(self, metric_name: str, data: Dict[str, Dict[str, Union[int, float]]]):
+        if len(metric := getattr(self, metric_name, {})) == 0:
+            if "prev_totals" in self.meta_data and metric_name in self.meta_data["prev_totals"]:
+                data = subtract_merge(data, self.meta_data["prev_totals"][metric_name])
+        else:
+            last_metric_data: Dict[str, Union[int, float]] = list(metric.values())[-1]
+            data = subtract_merge(data, last_metric_data)
+        setattr(self, metric_name, data)
+        self.set_total_of_metrics(metric_name)
+
 
     
     def set_metrics_from_user_demographic_response(self, response: 'InstagramUserDemographicInsightsResponse') -> None:
-        self.audience_city |= response.audience_city
-        self.set_total_of_metrics("audience_city")
-        self.audience_gender_age |= response.audience_gender_age
-        self.set_total_of_metrics("audience_gender_age")
-        self.audience_country |= response.audience_country
-        self.set_total_of_metrics("audience_country")
+        self.reduce_audience_data("audience_city", response.audience_city)
+        self.reduce_audience_data("audience_gender_age", response.audience_gender_age)
+        self.reduce_audience_data("audience_country", response.audience_country)
     
     def set_total_of_metrics(self, metric_name: str) -> None:
         if "totals"  not in self.meta_data:
@@ -180,8 +231,7 @@ class YoutubeHandleMetricModel(SocialMediaHandleMetrics):
     positive_engagement = models.JSONField(default=dict)
     negative_engagement = models.JSONField(default=dict)
     engagement = models.JSONField(default=dict)
-    meta_data = models.JSONField(default=dict)
-
+ 
     objects = YoutubeHandleMetricsManager()
 
 
