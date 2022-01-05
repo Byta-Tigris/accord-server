@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from accounts.models import Account
 from digger.instagram.digger import InstagramDigger
-from insights.serialiezers import SocialMediaHandleSerializer
+from insights.serializers import SocialMediaHandleSerializer
 from log_engine.log import logger
 from utils.errors import OAuthAuthorizationFailure
 from utils.types import EntityType, Platform
