@@ -74,10 +74,20 @@ class MetricTable:
             totals[col] = self._df[col].sum()
         return totals
     
-    def json(self) -> MetricTableJson:
+    def json(self, *filter_metrics) -> MetricTableJson:
+        columns = self.columns
+        removed_cols_index = []
+        totals = self.get_totals()
+        for index,metric_name in enumerate(columns):
+            if metric_name in filter_metrics:
+                removed_cols_index.append(index)
+                columns.remove(metric_name)
+                if metric_name in totals:
+                    del totals[metric_name]
+        
         _json: MetricTableJson = {"columns": self.columns, "rows": [], "totals": self.get_totals()}
         for row in self._df.values:
-            _json["rows"].append(list(row))
+            _json["rows"].append([data for index, data in enumerate(row) if index not in removed_cols_index])
         return _json
 
 

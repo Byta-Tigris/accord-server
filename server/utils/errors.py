@@ -26,3 +26,8 @@ class AccountDoesNotExists(Exception):
 class InvalidAuthentication(Exception):
     def __init__(self, username: str) -> None:
         super().__init__(f"Authentication for account {username} is invalid")
+
+
+class OAuthAuthorizationFailure(Exception):
+    def __init__(self, platform: str) -> None:
+        super().__init__(f"{platform}'s authorization failed")
