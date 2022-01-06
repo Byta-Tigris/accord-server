@@ -31,3 +31,8 @@ class InvalidAuthentication(Exception):
 class OAuthAuthorizationFailure(Exception):
     def __init__(self, platform: str) -> None:
         super().__init__(f"{platform}'s authorization failed")
+
+
+class NoSocialMediaHandleExists(Exception):
+    def __init__(self, username: str) -> None:
+        super().__init__(f"No social media associated with account of username {username}")

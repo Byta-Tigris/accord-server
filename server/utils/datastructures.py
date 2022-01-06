@@ -2,7 +2,7 @@ from datetime import timedelta
 from typing import Dict, List, Union
 from pandas import DataFrame, Timestamp
 
-from insights.models import SocialMediaHandleMetrics
+# from insights.models import SocialMediaHandleMetrics
 from utils import date_to_string, string_to_date
 
 Number = Union[int, float]
@@ -18,7 +18,7 @@ class MetricTable:
         than prev_totals will be formed into row with date one day prior to the earliest 
         then metrics get_prev_totals_row will be used
     """
-    def __init__(self,columns = None, index: str = "day", *metrics: SocialMediaHandleMetrics, **kwargs) -> None:
+    def __init__(self,columns = None, index: str = "day", *metrics: 'SocialMediaHandleMetrics', **kwargs) -> None:
         self.metrics = metrics
         self.columns = columns
         self.index = index
@@ -41,7 +41,7 @@ class MetricTable:
             transformed.append(value.copy())
         return transformed
 
-    def reset_prev_totals(self, metric: SocialMediaHandleMetrics) -> None:
+    def reset_prev_totals(self, metric: 'SocialMediaHandleMetrics') -> None:
         oldest_date = self._df[self.index].min()
         if oldest_date and isinstance(oldest_date, Timestamp):
             oldest_date = oldest_date.to_pydatetime()
@@ -54,13 +54,13 @@ class MetricTable:
             self.add_rows(rows)
 
 
-    def add_rows(self, rows: List[List[str, Number]]) -> None:
+    def add_rows(self, rows: List[List[Union[str, Number]]]) -> None:
         model_row = {key: 0  for key in self.columns if key != self.index}
         for row in rows:
             self._df.append(model_row | row, ignore_index=True)
                     
     
-    def add(self, metric: SocialMediaHandleMetrics) -> None:
+    def add(self, metric: 'SocialMediaHandleMetrics') -> None:
         metric_data: Dict[str, Dict[str, Union[int, float]]] = metric.get_metric_rows()
         rows = self.transform_row_dict(metric_data)
         self.add_rows(rows)

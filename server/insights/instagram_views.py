@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import json
 from typing import Dict, Union
 from rest_framework.views import APIView
@@ -11,8 +12,10 @@ from accounts.models import Account
 from digger.instagram.digger import InstagramDigger
 from insights.serializers import SocialMediaHandleSerializer
 from log_engine.log import logger
-from utils.errors import OAuthAuthorizationFailure
-from utils.types import EntityType, Platform
+from utils import date_to_string, get_current_time, string_to_date
+from utils.errors import AccountDoesNotExists, OAuthAuthorizationFailure
+from utils.types import Platform
+from django.db.models import QuerySet
 
 
 
@@ -31,7 +34,7 @@ class CreateInstagramHandlesView(APIView):
 
     def post(self, request: Request) -> Response:
         _status = status.HTTP_400_BAD_REQUEST
-        response = {}
+        response = {"data": []}
         try:
             assert request.account is not None, "Account must exists for using this service"
             account: Account = request.account
@@ -43,9 +46,8 @@ class CreateInstagramHandlesView(APIView):
             if token_response.error:
                 raise OAuthAuthorizationFailure(Platform.Instagram)
             handles = self.digger.create_or_update_social_media_handles(request.account, token_response.access_token, token_response.expires_in)
-            response["data"] = []
-            for handle in handles:
-                response["data"].append(self.serializer(handle).data)
+            serilzed = self.serializer(handles, many=True)
+            response["data"] = [dict(data) for data in serilzed.data]
             _status = status.HTTP_201_CREATED
         except Exception as err:
             _status = status.HTTP_400_BAD_REQUEST
@@ -57,33 +59,6 @@ class CreateInstagramHandlesView(APIView):
         return Response(response, status=_status)
 
 
-class RetrievePlatformInsights(APIView):
-    """
-    Retrieves collective platform insights
-    If username is provided then collective_platform_metric will be sent after filtering private metrics.
-    Else account will be used to retrieve platform metric of own handles
-
-    [filters]:
-    start_date -- Start of the date time
-    end_date -- End of the date time
-    
-    """
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated, AllowAny]
-    digger = InstagramDigger()
 
 
-class RetrieveInstagramHandleInsights(APIView):
-    """
-    Retrieve insights of single instagram handle
-    If username is provided then insight of instagram handle will be provided after filtering private metrics.
-    Else account will be used to retrieve instagram insights
-
-    [filters]:
-    start_date -- Start of the date
-    end_date -- End of the date
-    """
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated, AllowAny]
-    digger = InstagramDigger()
 

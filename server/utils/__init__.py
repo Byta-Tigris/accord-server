@@ -164,3 +164,8 @@ def subtract_merge(*metrics_array: Dict[str, Union[int, float]]) -> Dict[str, Un
 def is_in_debug_mode() -> bool:
     return os.getenv('DEBUG', False) == 'True'
 
+def unix_string_to_datetime(time_str: str) -> datetime:
+    return datetime.utcfromtimestamp(int(time_str))
+
+def datetime_to_unix_timestamp_string(time: datetime) -> str:
+    return str(int(time.timestamp()))
