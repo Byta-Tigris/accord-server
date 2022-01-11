@@ -18,7 +18,7 @@ from digger.youtube.types import YTChannel
 from utils import DATE_FORMAT, account_id_generator, get_current_time, validate_password
 from django.core.validators import validate_email
 from utils.ad_data import AdRate
-from utils.errors import AccountAlreadyExists
+from utils.errors import AccountAlreadyExists, PasswordValidationError
 from utils.types import *
 
 ################# Third-party imports ########################
@@ -97,7 +97,10 @@ class AccountManager(models.Manager):
     def create_user(self, email, password, **kwargs) -> User:
         """Create default User model in database if email doesn't exists -> User"""
         if self.check_user_exists_using_email(email):
-            return User.objects.filter(email=email).first()
+            user: User = User.objects.filter(email=email).first()
+            if not user.check_password(password):
+                raise PasswordValidationError(password)
+            return user
         
         # Running some validators
         validate_email(email)

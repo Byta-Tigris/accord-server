@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
-import json
-from sys import platform, ps1
+
 from typing import Dict, Tuple, Union
 from django.core.exceptions import BadRequest
 from django.db.models.query_utils import Q
