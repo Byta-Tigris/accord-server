@@ -40,7 +40,7 @@ class RetrieveSocialMediaHandleView(APIView):
             query: Q = None
             account: Account = request.account
             if handle_id is not None:
-                query  = Q(handle_id = handle_id)
+                query  = Q(handle_uid = handle_id)
             elif username is not None:
                 query = Q(account__username=username)
             elif account is not None:
@@ -49,6 +49,7 @@ class RetrieveSocialMediaHandleView(APIView):
                 query &= Q(platform = platform)
             if query is None:
                 raise BadRequest("Username must be provided")
+            query &= Q(is_disabled=False)
             handles: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.select_related('account').filter(query)
             if not handles.exists():
                 raise NoSocialMediaHandleExists(username)
@@ -125,6 +126,7 @@ class RetrievePlatformInsightsView(RetrieveInsightsView):
         data: Dict = request.GET.dict()
         username = kwargs.get("username", None)
         try:
+            platform = kwargs["platform"]
             start_date, end_date = self.setup(data=data,**kwargs)
             account: Account = request.account
             is_owner = False
@@ -167,7 +169,7 @@ class RetrieveHandleInsightsView(RetrieveInsightsView):
         response = {}
         data: Dict = request.GET.dict()
         try:
-            handles: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.select_related('account').filter(handle_id=handle)
+            handles: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.select_related('account').filter(Q(handle_uid=handle) & Q(is_disabled=False))
             if not handles.exists():
                 raise NoSocialMediaHandleExists("")
             handle: SocialMediaHandle = handles.first()
@@ -180,7 +182,7 @@ class RetrieveHandleInsightsView(RetrieveInsightsView):
             metric_table = self.digger.get_handle_insights(handle, start_date, end_date)
             metric_filters = []
             if not is_owner:
-                metric_filters = account.platform_specific_private_metric[platform]
+                metric_filters = account.platform_specific_private_metric[handle.platform]
             response["data"] = metric_table.json(*metric_filters)
             _status = status.HTTP_200_OK
         except Exception as err:

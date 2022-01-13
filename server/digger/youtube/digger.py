@@ -165,7 +165,7 @@ class YoutubeDigger(Digger):
         return yt_metrics_model
 
     def update_all_handles_insights(self, account: Account) -> List[YoutubeHandleMetricModel]:
-        queryset: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.filter(Q(account=account) & Q(platform=Platform.Youtube))
+        queryset: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.filter(Q(account=account) & Q(platform=Platform.Youtube) & Q(is_disabled=False))
         metrics: List[YoutubeHandleMetricModel] = []
         for handle in queryset:
             if (insights := self.update_handle_insights(handle)) is not None:

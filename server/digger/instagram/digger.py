@@ -23,7 +23,7 @@ class InstagramDigger(Digger):
         return response
     
     def _get_handles_queryset(self, account: Account) -> QuerySet[SocialMediaHandle]:
-        return SocialMediaHandle.objects.filter(Q(account=account) & Q(platform=Platform.Instagram))
+        return SocialMediaHandle.objects.filter(Q(account=account) & Q(platform=Platform.Instagram) & Q(is_disabled=False))
     
 
     def resync_social_media_handles(self, account: Account, access_token: str = None) -> List[SocialMediaHandle]:

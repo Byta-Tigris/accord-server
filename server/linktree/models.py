@@ -1,6 +1,7 @@
 from typing import Dict, List
 from django.db import models
 from django.db.models.query import QuerySet
+from django.db.models.query_utils import Q
 from accounts.models import Account, SocialMediaHandle
 # Create your models here.
 
@@ -64,7 +65,7 @@ class LinkWall(models.Model):
         return self
     
     def set_media_handles(self, media_handles: Dict[str, Dict[str,str]]) -> None:
-        social_media_handles: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.filter(account=self.account)
+        social_media_handles: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.filter(Q(account=self.account) & Q(is_disabled=False) )
         transformed_handles: Dict[str, List[Dict[str, str]]] = {}
         visited_urls = []
         for handle in social_media_handles:

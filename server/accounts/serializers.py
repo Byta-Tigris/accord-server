@@ -1,7 +1,8 @@
 from typing import Dict
 from django.contrib.auth.models import User
+from rest_framework.serializers import ModelSerializer
 
-from accounts.models import Account
+from accounts.models import Account, SocialMediaHandle
 
 
 class AccountSerializer:
@@ -30,3 +31,9 @@ class AccountSerializer:
     @property
     def data(self) -> Dict[str, str]:
         return self.serializer(self.account, self.user)
+
+
+class SocialMediaHandlePublicSerializer(ModelSerializer):
+    class Meta:
+        model = SocialMediaHandle
+        fields = ('platform', 'handle_url', 'handle_uid', 'username', 'avatar', 'follower_count', 'media_count')

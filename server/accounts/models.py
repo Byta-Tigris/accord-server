@@ -92,7 +92,7 @@ class AccountManager(models.Manager):
 
     def refract_kwargs_for_account_creation(self, kwargs: Dict) -> Dict:
         """Remove keyword arguments like email, password, first_name, last_name from kwargs"""
-        return {key: kwargs[key] for key in kwargs.keys() if key not in ["email", "password", "first_name", "last_name"]}
+        return {key: kwargs[key] for key in kwargs.keys() if key not in ["email", "password", "first_name", "last_name", "access_token"]}
     
     def create_user(self, email, password, **kwargs) -> User:
         """Create default User model in database if email doesn't exists -> User"""
@@ -179,7 +179,7 @@ class Account(models.Model, AccountInterface):
     username -- unique username for each instance of account, different usernames must be selected\n
                 for different entity types
     platform_specific_private_metric -- Key-Value pair of platform containing platform as key
-                and list of metric which are needed to be private
+                and list of metric which are needed to be private [Dict[platform, List[metric_name]]]
     """
     id = models.CharField(max_length=64, primary_key=True, default='')
     user = models.ForeignKey(User, related_name="user_account_relation", on_delete=models.CASCADE)
@@ -282,6 +282,7 @@ class SocialMediaHandle(models.Model):
     follower_count = models.PositiveBigIntegerField(default=0)
     media_count = models.PositiveIntegerField(default=0)
     meta_data = models.JSONField(default=dict)
+    is_disabled = models.BooleanField(default=False)
     rates = models.JSONField(default=dict)  # {"ad_name": {...data}}
 
 

@@ -1,5 +1,6 @@
-from typing import Dict, Tuple, Union
+from typing import Dict, List, Tuple, Union
 from django.db.models.query import QuerySet
+from django.db.models.query_utils import Q
 from rest_framework.views import APIView
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,22 +9,24 @@ from django.contrib.auth.models import User
 from django.core.exceptions import BadRequest, ValidationError
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework import status
-from accounts.serializers import AccountSerializer
+from accounts.serializers import AccountSerializer, SocialMediaHandlePublicSerializer
 from digger.google.request_manager import GoogleRequestManager
 from digger.google.request_struct import GoogleUserInfoRequestStruct
 from digger.google.response_struct import GoogleUserInfoResponseStruct
+from insights.models import InstagramHandleMetricModel, SocialMediaHandleMetrics, YoutubeHandleMetricModel
 from log_engine.log import logger
 
 import json
 from django.core.validators import validate_email
 
 
-from accounts.models import Account
-from utils import is_in_debug_mode
+from accounts.models import Account, SocialMediaHandle
+from utils import is_in_debug_mode, is_in_testing_mode
 from utils import errors
-from utils.errors import AccountAlreadyExists, AccountDoesNotExists, InvalidAuthentication, NoAccountsExists, OAuthAuthorizationFailure, PasswordValidationError
+from utils.errors import AccountAlreadyExists, AccountAuthenticationFailed, AccountDoesNotExists, InvalidAuthentication, NoAccountsExists, NoSocialMediaHandleExists, OAuthAuthorizationFailure, PasswordValidationError
+from utils.types import InstagramHandleMetricData
 
 # Create your views here.
 
@@ -67,7 +70,9 @@ def is_user_with_email_exists(request: Request) -> Response:
 class AuthenticationEngine:
     request_manager = GoogleRequestManager()
 
-    def verify_and_retrieve_info_from_google(self, access_token: str) -> Tuple[bool, Dict[str, str]]:
+    def verify_and_retrieve_info_from_google(self, access_token: str, email: str = None) -> Tuple[bool, Dict[str, str]]:
+        if is_in_testing_mode():
+            return True, {"email": email}
         request = GoogleUserInfoRequestStruct(access_token)
         response: GoogleUserInfoResponseStruct = request(self.request_manager)
         if response.error:
@@ -84,25 +89,13 @@ class CreateAccounAPIView(APIView, AuthenticationEngine):
     permission_classes = [AllowAny]
     request_manager = GoogleRequestManager()
 
-    def verify_and_retrieve_info_from_google(self, access_token: str) -> Tuple[bool, Dict[str, str]]:
-        request = GoogleUserInfoRequestStruct(access_token)
-        response: GoogleUserInfoResponseStruct = request(self.request_manager)
-        if response.error:
-            raise OAuthAuthorizationFailure("Google")
-        return response.is_email_verified, {
-            "email": response.email,
-            "first_name": response.first_name,
-            "last_name": response.last_name,
-            "avatar": response.avatar
-        }
-
     def post(self, request: Request) -> Response:
         data = json.loads(request.body)
         response_data = {}
         _status = status.HTTP_400_BAD_REQUEST
         try:
-            assert "email" in data, "Email is required for creating account"
-            assert "password" in data, "Password is required for creating account"
+            assert "email" in data and data["email"], "Email is required for creating account"
+            assert "password" in data and data["password"] and len(data["password"]) > 7, "Password validity is required for creating account"
             assert "username" in data and Account.is_valid_username_structure(
                 data['username']), "Username is required for creating account"
             assert not Account.objects.check_username_exists(
@@ -114,7 +107,7 @@ class CreateAccounAPIView(APIView, AuthenticationEngine):
             else:
                 assert "access_token" in data, "Email is not authorized"
                 is_email_verified, info = self.verify_and_retrieve_info_from_google(
-                    data["access_token"])
+                    data["access_token"], email=data["email"])
                 assert is_email_verified and info["email"] == data["email"], "Invalid Email data"
                 data = info | data
                 instance_: Union[User,
@@ -130,7 +123,7 @@ class CreateAccounAPIView(APIView, AuthenticationEngine):
             _status = status.HTTP_201_CREATED
 
         except AssertionError as err:
-            response_data = {"error", str(err)}
+            response_data = {"error": str(err)}
             _status = status.HTTP_400_BAD_REQUEST
         except Exception as err:
             if isinstance(err, ValidationError):
@@ -208,7 +201,7 @@ class AccountLoginAPIView(APIView):
             return Response(response_body, status=_status)
 
 
-class EditAccountAPIView(APIView):
+class RetrieveAndEditAccountAPIView(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -216,6 +209,31 @@ class EditAccountAPIView(APIView):
         "contact", "description", "avatar", "banner_image")
     USER_EDIT_WHITELIST_FIELDS = ("first_name", "last_name")
     serializer_class = AccountSerializer
+
+    def get_account_details(self, account: Account) -> Dict[str, str]:
+        return self.serializer_class(account).data
+
+    def get(self, request: Request, **kwargs) -> Response:
+        _status = status.HTTP_200_OK
+        response_body = {}
+        try:
+            account: Account = request.account
+            if account is None:
+                raise AccountAuthenticationFailed()
+            response_body["data"] = self.get_account_details(account)
+            response_body["data"]["is_account_owner"] = True
+
+        except Exception as err:
+            _status = status.HTTP_400_BAD_REQUEST
+            response_body = {}
+            if isinstance(err, AccountAuthenticationFailed):
+                _status = status.HTTP_404_NOT_FOUND
+                response_body["error"] = f"No account was found"
+            elif isinstance(err, BadRequest):
+                response_body["error"] = f"Bad request parameters"
+            else:
+                logger.error(err)
+        return Response(response_body, status=_status)
 
     def post(self, request: Request) -> Response:
         _status = status.HTTP_401_UNAUTHORIZED
@@ -263,7 +281,7 @@ class EditAccountAPIView(APIView):
         return Response(response_body, status=_status)
 
 
-class RetrieveAccountsView(APIView, AuthenticationEngine):
+class RetrieveAccountsFromEmailView(APIView, AuthenticationEngine):
     permission_classes = [AllowAny]
 
     def post(self, request: Request) -> Response:
@@ -272,17 +290,20 @@ class RetrieveAccountsView(APIView, AuthenticationEngine):
         data = json.loads(request.body)
         try:
             assert "access_token" in data and data["access_token"], "Email must be authenticated"
-            is_email_verified, info = self.verify_and_retrieve_info_from_google(data["access_token"])
+            is_email_verified, info = self.verify_and_retrieve_info_from_google(
+                data["access_token"])
             if not (is_email_verified and info["email"]):
                 raise InvalidAuthentication(data["username"])
-            accounts_queryset: QuerySet[Account] = Account.objects.select_related("user").filter(user__email=info["email"])
+            accounts_queryset: QuerySet[Account] = Account.objects.select_related(
+                "user").filter(user__email=info["email"])
             if not accounts_queryset.exists():
                 raise NoAccountsExists(info["email"])
-            response["data"] = [{"username": account.username, "avatar": account.avatar} for account in accounts_queryset]
+            response["data"] = [{"username": account.username,
+                                 "avatar": account.avatar} for account in accounts_queryset]
             _status = status.HTTP_200_OK
         except Exception as err:
             _status = status.HTTP_400_BAD_REQUEST
-            if isinstance(err, InvalidAuthentication, NoAccountsExists, OAuthAuthorizationFailure):
+            if isinstance(err, (InvalidAuthentication, NoAccountsExists, OAuthAuthorizationFailure)):
                 _status = status.HTTP_403_FORBIDDEN
                 response = {"error": repr(err)}
             elif isinstance(err, (AssertionError, ValueError, KeyError)):
@@ -291,8 +312,6 @@ class RetrieveAccountsView(APIView, AuthenticationEngine):
             else:
                 logger.error(err)
         return Response(response, status=_status)
-
-
 
 
 class ResetPasswordView(APIView, AuthenticationEngine):
@@ -304,15 +323,17 @@ class ResetPasswordView(APIView, AuthenticationEngine):
         data = json.loads(request.body)
         try:
             assert "username" in data and data["username"], "Username must be provided"
-            assert "password" in data and data["password"], "Password must be provided"
+            assert "password" in data and data["password"] and len(data["password"]) > 7, "Valid password is required"
             assert "access_token" in data and data["access_token"], "Email must be authenticated"
 
-            account_queryset: QuerySet[Account] = Account.objects.select_related('user').filter(username=data["username"])
+            account_queryset: QuerySet[Account] = Account.objects.select_related(
+                'user').filter(username=data["username"])
             if not account_queryset.exists():
                 raise AccountDoesNotExists(data["username"])
             account: Account = account_queryset.first()
             user: User = account.user
-            is_email_verified, info = self.verify_and_retrieve_info_from_google(data["access_token"])
+            is_email_verified, info = self.verify_and_retrieve_info_from_google(
+                data["access_token"], user.email)
             if not (is_email_verified and info["email"] == user.email):
                 raise InvalidAuthentication(data["username"])
             user.set_password(data["password"])
@@ -326,19 +347,20 @@ class ResetPasswordView(APIView, AuthenticationEngine):
             }
 
         except Exception as err:
+            
             _status = status.HTTP_400_BAD_REQUEST
-            if isinstance(err, InvalidAuthentication, AccountDoesNotExists, OAuthAuthorizationFailure):
+            if isinstance(err, (InvalidAuthentication, AccountDoesNotExists, OAuthAuthorizationFailure)):
                 _status = status.HTTP_403_FORBIDDEN
                 response = {"error": repr(err)}
             elif isinstance(err, (AssertionError, ValueError, KeyError)):
                 _status = status.HTTP_400_BAD_REQUEST
                 response = {"error": repr(err)}
             else:
-                logger.error(err)
+                if is_in_testing_mode():
+                    raise err
+                else:
+                    logger.error(err)
         return Response(response, status=_status)
-
-
-
 
 
 class ChangePasswordView(APIView):
@@ -351,7 +373,7 @@ class ChangePasswordView(APIView):
         data = json.loads(request.body)
         try:
             assert "current_password" in data and data["current_password"], "Current password must be provided"
-            assert "password" in data and data["password"], "A valid password must be provided"
+            assert "password" in data and data["password"] and len(data["password"]) > 7, "Password validity is required for creating account"
             if not request.account:
                 raise InvalidAuthentication("")
             account: Account = request.account
@@ -364,7 +386,7 @@ class ChangePasswordView(APIView):
             response["body"] = "Password updated"
         except Exception as err:
             _status = status.HTTP_400_BAD_REQUEST
-            if isinstance(err, InvalidAuthentication, PasswordValidationError):
+            if isinstance(err, (InvalidAuthentication, PasswordValidationError)):
                 _status = status.HTTP_403_FORBIDDEN
                 response = {"error": repr(err)}
             elif isinstance(err, (AssertionError, ValueError, KeyError)):
@@ -374,44 +396,129 @@ class ChangePasswordView(APIView):
                 logger.error(err)
         return Response(response, status=_status)
 
-            
 
 
-class RetrieveProfileAPIView(APIView):
-
+class RetrieveAndDeleteSocialHandlesAPIView(APIView):
     authentication_classes = [TokenAuthentication]
-    permission_classes = [AllowAny, IsAuthenticated]
-    serializer_class = AccountSerializer
+    permission_classes = [IsAuthenticated]
+    serializer = SocialMediaHandlePublicSerializer
 
-    def get_account_details(self, account: Account) -> Dict[str, str]:
-        return self.serializer_class(account).data
+    def get_serialized_handles(self, account: Account) -> List[Dict]:
+        handles: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.filter(
+            Q(account=account))
+        return [dict(handle) for handle in self.serializer(handles, many=True)]
 
-    def get(self, request: Request, **kwargs) -> Response:
-        username: str = kwargs.get("username", None)
-        _status = status.HTTP_200_OK
-        response_body = {}
+    def get(self, request: Request) -> Response:
+        _status = status.HTTP_400_BAD_REQUEST
+        response = {}
         try:
+            if not request.account:
+                raise AccountAuthenticationFailed()
             account: Account = request.account
-            if username is None and account is None:
-                raise BadRequest()
-            if (account and username and account.username != username) or (account is None and username is not None):
-                account_queryset: QuerySet[Account] = Account.objects.filter(
-                    username=username)
-                if not account_queryset.exists():
-                    raise AccountDoesNotExists(username)
-                account: Account = account_queryset.first()
-            response_body["data"] = self.get_account_details(account)
-            response_body["data"]["is_account_owner"] = (username is not None and request.account is not None and request.account.username == username) or (
-                username is None and request.account is not None)
-
+            response["data"] = self.get_serialized_handles(account)
+            _status = status.HTTP_200_OK
         except Exception as err:
-            _status = status.HTTP_400_BAD_REQUEST
-            response_body = {}
-            if isinstance(err, AccountDoesNotExists):
-                _status = status.HTTP_404_NOT_FOUND
-                response_body["error"] = f"No account related with username {username} was found"
-            elif isinstance(err, BadRequest):
-                response_body["error"] = f"Bad request parameters"
+            response["error"] = str(err)
+        return Response(response, status=_status)
+
+    def post(self, request: Request) -> Response:
+        """
+        Changes visibility of social media handles by tweaking is_disabled property
+        Request Body:
+            handle_ids: List[handle_id]
+        """
+        _status = status.HTTP_400_BAD_REQUEST
+        response = {}
+        data: Dict = json.load(request.body)
+        try:
+            if not request.account:
+                raise AccountAuthenticationFailed()
+            account: Account = request.account
+            handle_ids: List[str] = data.get("handle_ids", [])
+            handles: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.filter(
+                Q(handle_uid__in=handle_ids))
+            if handles.exists():
+                handles.delete()
+            response["data"] = self.get_serialized_handles(account)
+            _status = status.HTTP_202_ACCEPTED
+        except Exception as err:
+            response["error"] = str(err)
+            if not is_in_debug_mode():
+                logger.error(err)
+        return Response(response, status=_status)
+
+
+
+
+class PlatformMetricVisibilityView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @staticmethod
+    def get_metrics(private_metrics:Dict[List[str]] = []) -> List[Dict[str, Union[str, bool]]]:
+        """
+        List[Struct{platform, metric_name, is_visible:bool}]
+        """
+        metrics = []
+        metric_classes: List[SocialMediaHandleMetrics] = [InstagramHandleMetricModel, YoutubeHandleMetricModel]
+        for metric_class in metric_classes:
+            platform = metric_class.objects.platform
+            for metrc_name in metric_class.get_metric_names():
+                data = {"metric_name": metrc_name, "platform": platform, "is_visible": True}
+                if platform in private_metrics and metrc_name in private_metrics[platform]:
+                    data["is_visible"] = False
+                metrics.append(data)
+        return metrics
+
+
+    def get(self, request: Request) -> Response:
+        _status = status.HTTP_400_BAD_REQUEST
+        response = {}
+        try:
+            if not request.account:
+                raise AccountAuthenticationFailed()
+            account: Account = request.account
+            _status = status.HTTP_200_OK
+            response["data"] = self.get_metrics(account.platform_specific_private_metric)
+        except Exception as err:
+            if isinstance(err, AccountAuthenticationFailed):
+                response["error"] = str(err)
             else:
                 logger.error(err)
-        return Response(response_body, status=_status)
+        return Response(response, status=_status)
+
+
+
+    def post(self, request: Request) -> Response:
+        """
+        Request Body:
+            metrics: List[Struct{platform, metric_name}]
+        """
+        _status = status.HTTP_400_BAD_REQUEST
+        response = {}
+        data = json.loads(request.body)
+        try:
+            if not request.account:
+                raise AccountAuthenticationFailed()
+            assert "metrics" in data, "Metrics must be provided"
+            metrics: List[Dict[str, str]] = data["metrics"]
+            account: Account = request.account
+            platform_specific_private_metric: Dict[str, List[str]] = account.platform_specific_private_metric
+            for metric in metrics:
+                if metric["platform"] not in platform_specific_private_metric:
+                    platform_specific_private_metric[metric["platform"]] = []
+                if metric["metric_name"] in platform_specific_private_metric[metric["platform"]]:
+                    platform_specific_private_metric[metric["platform"]].remove(metric["metric_name"])
+                else:
+                    platform_specific_private_metric[metric["platform"]].append(metric["metric_name"])
+            account.platform_specific_private_metric = platform_specific_private_metric
+            account.save()
+            _status = status.HTTP_202_ACCEPTED
+            response["data"] = self.get_metrics(account.platform_specific_private_metric)
+        except Exception as err:
+            if isinstance(err, (AccountAuthenticationFailed, AssertionError)):
+                response["error"] = str(err)
+            else:
+                logger.error(err)
+        return Response(response, status=_status)
+            

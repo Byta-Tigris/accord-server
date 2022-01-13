@@ -6,6 +6,7 @@ from digger.youtube.types import YTMetrics
 from insights.managers import InstagramHandleMetricsManager, SocialMediaHandleMetricsManager, YoutubeHandleMetricsManager
 from utils import DATE_FORMAT, get_current_time, get_handle_metrics_expire_time, merge_metric, subtract_merge
 from django.db.models import JSONField
+from django.db.models.query_utils import DeferredAttribute
 
 
 
@@ -32,8 +33,12 @@ class SocialMediaHandleMetrics(models.Model):
     meta_data = models.JSONField(default=dict)
 
     objects = SocialMediaHandleMetricsManager()
-
     COLUMN_WHITELIST = ["id", "handle_id", "platform", "created_on", "expired_on", "meta_data"]
+
+
+    @classmethod
+    def get_metric_names(cls) -> List[str]:
+        return [key for key, value in vars(cls).items() if key != "id" and isinstance(value, DeferredAttribute)]
 
     def _calculate_collective_metrics(self) -> Dict[str, Union[int ,float]]:
         data = {}
@@ -141,7 +146,7 @@ class InstagramHandleMetricModel(SocialMediaHandleMetrics):
                     'reach', 'audience_city', 'audience_gender_age',"audience_country",
                     "profile_views"
                     ]
-
+    
 
     def set_metrics_from_user_insight_response(self, response: 'InstagramUserInsightsResponse') -> None:
         self.set_total_of_metrics("follower_count")

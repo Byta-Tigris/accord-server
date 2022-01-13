@@ -25,6 +25,7 @@ class CreateAccountFixture:
     banner_image: Optional[str] = None
     output_success: bool = False
     output_class: Union[None, User, Account] = None
+    access_token: str = "some-token"
 
     def to_kwargs(self) -> Dict[str, Any]:
         data = {}
@@ -151,7 +152,7 @@ class TestAccountViews(APITestCase):
         for fixture in fixtures:
             res = self.client.post(url, fixture.to_kwargs(), content_type=self.content_type)
             if fixture.output_success:
-                print(res.json())
+                print(fixture.to_kwargs(), res.json())
                 self.assertEqual(res.status_code, status.HTTP_201_CREATED)
             else:
                 self.assertNotEqual(res.status_code, status.HTTP_201_CREATED)
@@ -196,7 +197,8 @@ class TestAccountViews(APITestCase):
         for account in accounts:
             res = self.client.post(create_account_url, account.to_kwargs(), content_type=self.content_type)
             body = res.json()
-            account_tokens.append(body["token"])
+            if res.status_code == 201:
+                account_tokens.append(body["token"])
 
 
         fixtures = [
@@ -243,7 +245,7 @@ class TestAccountViews(APITestCase):
 
     def test_edit_account(self) -> None:
 
-        url = reverse('edit-account')
+        url = reverse('retrieve-edit-account')
 
         # edit description
         old_description = self.account.description
@@ -302,11 +304,11 @@ class TestAccountViews(APITestCase):
 
 
 
-    def test_retrieve_creator_account(self) -> None:
+    def test_retrieve_account(self) -> None:
         account_dict = AccountSerializer(self.account).data
 
         # Using me request
-        res = self.autheticated_client.get(reverse('retrieve-me'))
+        res = self.autheticated_client.get(reverse('retrieve-edit-account'))
         self.assertEqual(res.status_code, 200)
         body: Dict[str, Dict[str, Union[str, bool]]] = res.json()
         self.assertTrue("data" in body)
@@ -314,36 +316,45 @@ class TestAccountViews(APITestCase):
             if key in account_dict:
                 self.assertEqual(account_dict[key], value)
         self.assertTrue(body["data"]["is_account_owner"])
-        
-        #using username
-        res = self.autheticated_client.get(reverse('retrieve-username', args=(self.account.username,)))
-        self.assertEqual(res.status_code, 200)
-        body: Dict[str, Dict[str, Union[str, bool]]] = res.json()
-        self.assertTrue("data" in body)
-        for key, value in body["data"].items():
-            if key in account_dict:
-                self.assertEqual(account_dict[key], value)
-        self.assertTrue(body["data"]["is_account_owner"])
+    
 
-        another_account: Account = Account.objects.create(
-            email="bytatigrisdevanother@gmail.com",
-            password="helloworld123",
-            first_name="Another",
-            last_name="world",
-            entity_type = EntityType.Advertiser,
-            username="anotheraccount",
-            description="another_Account"
-        )
-
-        res = self.autheticated_client.get(reverse('retrieve-username', args=[another_account.username]))
-        self.assertEqual(res.status_code, 200)
-        body = res.json()
-        another_account_dict = AccountSerializer(another_account).data
-        for key, value in body["data"].items():
-            if key in another_account_dict:
-                self.assertEqual(another_account_dict[key], value)
-        print(body)
-        self.assertTrue(body["data"]["is_account_owner"] == False)
-
-
-
+    def test_reset_password_view(self) -> None:
+        url = reverse('reset-password')
+        fixtures = [
+            {
+                "data": {
+                    "username": self.account.username,
+                    "access_token": "some-random-state"
+                },
+                "success": False
+            },
+            {
+                "data": {
+                    "username": self.account.username,
+                    "password": "somepassword"
+                },
+                "success": False
+            },{
+                "data": {
+                    "username": self.account.username,
+                    "password": "small",
+                    "access_token": "some-random-state"
+                },
+                "success": False
+            },
+            {
+                "data": {
+                    "username": self.account.username,
+                    "password": "bytapass",
+                    "access_token": "some-random-state"
+                },
+                "success": True
+            }
+        ]
+        for fixture in fixtures:
+            res = self.client.post(url, data=fixture["data"], content_type=self.content_type)
+            self.assertEqual(res.status_code == 202, fixture["success"])
+            if fixture["success"]:
+                data = res.json()["data"]
+                self.assertTrue("token" in data)
+                self.assertTrue(self.account.user.check_password(fixture["data"]["password"]))
