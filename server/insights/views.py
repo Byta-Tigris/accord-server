@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import json
 
 from typing import Dict, Tuple, Union
 from django.core.exceptions import BadRequest
@@ -20,7 +21,7 @@ from insights.serializers import LinkwallInsightsSerializer, SocialMediaHandleSe
 from linktree.models import LinkClickCounterModel, LinkWall, LinkwallViewCounterModel
 from log_engine.log import logger
 from utils import datetime_to_unix_timestamp_string, get_current_time, unix_string_to_datetime
-from utils.errors import AccountAuthenticationFailed, AccountDoesNotExists, NoSocialMediaHandleExists
+from utils.errors import AccountAuthenticationFailed, AccountDoesNotExists, NoSocialMediaHandleExists, OAuthAuthorizationFailure
 from utils.types import Platform
 from rest_framework.decorators import api_view, permission_classes
 
@@ -30,6 +31,49 @@ from rest_framework.decorators import api_view, permission_classes
 def get_platforms_view(self, request: Request) -> Response:
     platforms = [key for key in vars(Platform).keys() if not key.startswith('_')]
     return Response({"data": platforms}, status=status.HTTP_200_OK)
+
+
+
+def get_digger(platform: str) -> Digger:
+    if platform == Platform.Instagram:
+        return InstagramDigger()
+    elif platform == Platform.Youtube:
+        return YoutubeDigger()
+    return None
+
+class CreateSocialMediaHandlesView(APIView):
+    """
+    
+    """
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    digger = None
+    serializer = SocialMediaHandleSerializer
+
+    def post(self, request: Request, platform: str) -> Response:
+        _status = status.HTTP_400_BAD_REQUEST
+        response = {}
+        try:
+            assert request.account is not None, "Account must exists for using this service"
+            account: Account = request.account
+            body = request.body
+            data = json.loads(body)
+            self.digger = get_digger(platform)
+            if self.digger is None:
+                raise BadRequest("Platform must be valid")
+            handles = self.digger.create_or_update_handles_from_data(account, **data)
+            serialzed = self.serializer(handles, many=True)
+            response["data"] = serialzed.data
+            _status = status.HTTP_201_CREATED
+        except Exception as err:
+            _status = status.HTTP_400_BAD_REQUEST
+            if isinstance(err, (AssertionError, OAuthAuthorizationFailure, BadRequest)):
+                response["error"] = str(err)
+            else:
+                response["error"] = "Unable to retrieve information from Instagram"
+                logger.error(err)
+        return Response(response, status=_status)
+
 
 
 
@@ -113,10 +157,7 @@ class RetrieveInsightsView(APIView):
     def setup(self, **kwargs) -> Tuple[datetime, datetime]:
         assert "platform" in kwargs and len(kwargs["platform"]) > 0, "Platform must be provided"
         platform = kwargs["platform"]
-        if platform == Platform.Instagram:
-            self.digger = InstagramDigger()
-        elif platform == Platform.Youtube:
-            self.digger = YoutubeDigger()
+        self.digger = get_digger(platform)
         if self.digger is None:
             raise BadRequest("Platform must be valid")
         data: Dict = kwargs["data"]

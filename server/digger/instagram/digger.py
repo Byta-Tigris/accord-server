@@ -5,6 +5,7 @@ from accounts.models import Account, SocialMediaHandle
 from digger.base.types import Digger
 from insights.models import InstagramHandleMetricModel
 from utils.datastructures import MetricTable
+from utils.errors import OAuthAuthorizationFailure
 from .types import InstagramPlalformMetric
 from utils import date_to_string, get_current_time, merge_metric
 from utils.types import Platform
@@ -64,6 +65,12 @@ class InstagramDigger(Digger):
         handles += list(handle_queryset)
         return handles
 
+    def create_or_update_handles_from_data(self, account: 'Account', **kwargs) -> List[SocialMediaHandle]:
+        assert "token" in kwargs, "OAuth authorization must be completed."
+        token_response = self.get_long_lived_token(kwargs["token"])
+        if token_response.error:
+                raise OAuthAuthorizationFailure(Platform.Instagram)
+        return self.create_or_update_social_media_handles(account, token_response.access_token, token_response.expires_in)
 
         
     

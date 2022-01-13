@@ -88,6 +88,13 @@ class Digger(AbstractDigger):
         """
         pass
 
+    def create_or_update_handles_from_data(self, account: 'Account', **kwargs) -> List['SocialMediaHandle']:
+        """
+        An abstraction around different methods of digger to retrieve access_token 
+        and run 'create_or_update_social_media_handles'
+        """
+        pass
+
     def create_or_update_social_media_handles(self, account: 'Account', access_token: str, expires_in: int = 3599, refresh_token: str = None) -> List['SocialMediaHandle']:
         """
         Fetches all handles related with the access_token\n

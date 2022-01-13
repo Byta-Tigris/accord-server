@@ -9,6 +9,7 @@ from digger.youtube.types import MetricRecord, YoutubePlatformMetrics
 from insights.models import YoutubeHandleMetricModel
 from utils import merge_metric, reformat_age_gender
 from utils.datastructures import MetricTable
+from utils.errors import OAuthAuthorizationFailure
 from utils.types import Platform
 
 
@@ -66,6 +67,14 @@ class YoutubeDigger(Digger):
         SocialMediaHandle.objects.bulk_create(handles)
         handles += list(handle_queryset)
         return handles
+    
+    def create_or_update_handles_from_data(self, account: 'Account', **kwargs) -> List['SocialMediaHandle']:
+        assert "code" in kwargs, "OAuth Authorization must be complete"
+        assert "redirect_uri" in kwargs, "Provided data must contain redirect_uri"
+        token_response = self.exchange_code_for_token(kwargs["code"], kwargs["redirect_uri"])
+        if token_response.error:
+            raise OAuthAuthorizationFailure(Platform.Youtube)
+        return self.create_or_update_social_media_handles(account, token_response.access_token, token_response.expires_in, refresh_token=token_response.refresh_token)
     
     def create_or_update_social_media_handles(self, account: Account, access_token: str, expires_in: int = 3599, refresh_token: str = None) -> List[SocialMediaHandle]:
         handles: List[SocialMediaHandle] = self.resync_social_media_handles(account, access_token=access_token)
