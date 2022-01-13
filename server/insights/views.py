@@ -19,10 +19,18 @@ from digger.youtube.digger import YoutubeDigger
 from insights.serializers import LinkwallInsightsSerializer, SocialMediaHandleSerializer
 from linktree.models import LinkClickCounterModel, LinkWall, LinkwallViewCounterModel
 from log_engine.log import logger
-from utils import date_to_string, datetime_to_unix_timestamp_string, get_current_time, string_to_date, unix_string_to_datetime
-from utils.datastructures import MetricTable
+from utils import datetime_to_unix_timestamp_string, get_current_time, unix_string_to_datetime
 from utils.errors import AccountAuthenticationFailed, AccountDoesNotExists, NoSocialMediaHandleExists
 from utils.types import Platform
+from rest_framework.decorators import api_view, permission_classes
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_platforms_view(self, request: Request) -> Response:
+    platforms = [key for key in vars(Platform).keys() if not key.startswith('_')]
+    return Response({"data": platforms}, status=status.HTTP_200_OK)
+
 
 
 class RetrieveSocialMediaHandleView(APIView):

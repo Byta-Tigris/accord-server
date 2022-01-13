@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import BadRequest, ValidationError
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
 from accounts.serializers import AccountSerializer, SocialMediaHandlePublicSerializer
 from digger.google.request_manager import GoogleRequestManager
@@ -26,7 +26,6 @@ from accounts.models import Account, SocialMediaHandle
 from utils import is_in_debug_mode, is_in_testing_mode
 from utils import errors
 from utils.errors import AccountAlreadyExists, AccountAuthenticationFailed, AccountDoesNotExists, InvalidAuthentication, NoAccountsExists, NoSocialMediaHandleExists, OAuthAuthorizationFailure, PasswordValidationError
-from utils.types import InstagramHandleMetricData
 
 # Create your views here.
 
