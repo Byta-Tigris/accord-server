@@ -43,4 +43,4 @@ class NoSocialMediaHandleExists(Exception):
 class AccountAuthenticationFailed(Exception):
 
     def __init__(self) -> None:
-        super().__init__(f"Account authentication failed")
+        super().__init__(f"Account authentication failed. Please Login again")

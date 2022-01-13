@@ -16,11 +16,12 @@ from accounts.models import Account, SocialMediaHandle
 from digger.base.types import Digger
 from digger.instagram.digger import InstagramDigger
 from digger.youtube.digger import YoutubeDigger
-from insights.serializers import SocialMediaHandleSerializer
+from insights.serializers import LinkwallInsightsSerializer, SocialMediaHandleSerializer
+from linktree.models import LinkClickCounterModel, LinkWall, LinkwallViewCounterModel
 from log_engine.log import logger
 from utils import date_to_string, datetime_to_unix_timestamp_string, get_current_time, string_to_date, unix_string_to_datetime
 from utils.datastructures import MetricTable
-from utils.errors import AccountDoesNotExists, NoSocialMediaHandleExists
+from utils.errors import AccountAuthenticationFailed, AccountDoesNotExists, NoSocialMediaHandleExists
 from utils.types import Platform
 
 
@@ -84,8 +85,8 @@ class RetrieveInsightsView(APIView):
     Else account will be used to retrieve platform metric of own handles
 
     [filters]:
-    start_date -- Start of the date time
-    end_date -- End of the date time
+    start_date -- Start of the date time [Unix]
+    end_date -- End of the date time [Unix]
 
     The default end_date is today and start_date is a day before
     
@@ -93,6 +94,13 @@ class RetrieveInsightsView(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, AllowAny]
     digger: Digger = None
+
+    def get_date_filters(self,data, delta_days=1) -> Tuple[datetime, datetime]:
+        default_end_date = datetime_to_unix_timestamp_string(get_current_time())
+        default_start_date = datetime_to_unix_timestamp_string(get_current_time() - timedelta(days=delta_days))
+        end_date: datetime = unix_string_to_datetime(data.get("end_date", default_end_date))
+        start_date: datetime = unix_string_to_datetime(data.get("start_date",  default_start_date))
+        return start_date, end_date
 
     def setup(self, **kwargs) -> Tuple[datetime, datetime]:
         assert "platform" in kwargs and len(kwargs["platform"]) > 0, "Platform must be provided"
@@ -103,12 +111,8 @@ class RetrieveInsightsView(APIView):
             self.digger = YoutubeDigger()
         if self.digger is None:
             raise BadRequest("Platform must be valid")
-        data = kwargs["data"]
-        default_end_date = datetime_to_unix_timestamp_string(get_current_time())
-        default_start_date = datetime_to_unix_timestamp_string(get_current_time() - timedelta(days=1))
-        end_date: datetime = unix_string_to_datetime(data.get("end_date", default_end_date))
-        start_date: datetime = unix_string_to_datetime(data.get("start_date",  default_start_date))
-        return start_date, end_date
+        data: Dict = kwargs["data"]
+        return self.get_date_filters(data, delta_days=kwargs.get("delta_days", 1))
 
 
 
@@ -200,3 +204,42 @@ class RetrieveHandleInsightsView(RetrieveInsightsView):
                 response["error"] = f"Unable to fetch platform insights"
                 logger.error(err)
         return Response(response, status=_status)
+
+
+
+
+class RetrieveLinkwallInsights(RetrieveInsightsView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = LinkwallInsightsSerializer
+
+
+    def get(self, request: Request) -> Response:
+        _status = status.HTTP_400_BAD_REQUEST
+        response = {}
+        query_params: QueryDict = request.GET 
+        start_date, end_date = self.get_date_filters(query_params.dict(), delta_days=7) 
+        try:
+            if not request.account:
+                raise AccountAuthenticationFailed()
+            account: Account = request.account
+            linkwall_queryset: QuerySet[LinkWall] = LinkWall.objects.filter(Q(account=account))
+            if not linkwall_queryset.exists():
+                _status = status.HTTP_200_OK
+                response["data"] = "No linkwall found"
+            linkwall: LinkWall = linkwall_queryset.first()
+            query = Q(linkwall = linkwall) & Q(created_on__gte=start_date) & Q(created_on__lte=end_date)
+            views_queryset: QuerySet[LinkwallViewCounterModel] = LinkwallViewCounterModel.objects.filter(query)
+            click_queryset: QuerySet[LinkClickCounterModel] = LinkClickCounterModel.objects.filter(query)
+            serialized = self.serializer_class(views_queryset, click_queryset)
+            response["data"] = serialized.data
+            _status = status.HTTP_200_OK
+        except Exception as err:
+            if isinstance(err, AccountAuthenticationFailed):
+                response["error"] = str(err)
+            else:
+                logger.error(err)
+        return Response(response, status=_status)
+            
+                
+

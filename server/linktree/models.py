@@ -1,10 +1,11 @@
+from django.contrib.auth.models import User
 from typing import Dict, List
 from django.db import models
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 from accounts.models import Account, SocialMediaHandle
+from utils import get_current_time
 # Create your models here.
-
 
 
 class LinkWallTemplate(models.Model):
@@ -12,7 +13,6 @@ class LinkWallTemplate(models.Model):
     is_active = models.BooleanField(default=True)
     created_on = models.DateTimeField(auto_now=True)
     styles = models.JSONField(default=dict)
-
 
 
 class LinkWall(models.Model):
@@ -49,7 +49,8 @@ class LinkWall(models.Model):
         }
     }
     """
-    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="link_tree_accounts")
+    account = models.ForeignKey(
+        Account, on_delete=models.CASCADE, related_name="link_tree_accounts")
     background_image = models.URLField(default="")
     avatar_image = models.URLField(default="")
     media_handles = models.JSONField(default=dict)
@@ -58,14 +59,20 @@ class LinkWall(models.Model):
     links = models.JSONField(default=dict)
     styles = models.JSONField(default=dict)
 
+    views = models.ManyToManyField(
+        User, through='LinkwallViewCounterModel', blank=True, related_name="linkwall_views", default='')
+    clicks = models.ManyToManyField(
+        User, through='LinkClickCounterModel', blank=True, related_name="link_clicks", default="")
+
     def set_styles_from_template(self, template: LinkWallTemplate, save: bool = True) -> 'LinkWall':
         self.styles = template.styles
         if save:
             self.save()
         return self
-    
-    def set_media_handles(self, media_handles: Dict[str, Dict[str,str]]) -> None:
-        social_media_handles: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.filter(Q(account=self.account) & Q(is_disabled=False) )
+
+    def set_media_handles(self, media_handles: Dict[str, Dict[str, str]]) -> None:
+        social_media_handles: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.filter(
+            Q(account=self.account) & Q(is_disabled=False))
         transformed_handles: Dict[str, List[Dict[str, str]]] = {}
         visited_urls = []
         for handle in social_media_handles:
@@ -87,16 +94,33 @@ class LinkWall(models.Model):
                         "avatar": handle_data.get("avatar", None),
                         "url": handle_data.get("url", None)
                     })
-                
+
         self.media_handles = transformed_handles
-    
+
     def sync_media_handles(self) -> None:
         self.set_media_handles(self.media_handles)
 
-            
+    def add_view(self, user: User) -> None:
+        counter = LinkwallViewCounterModel(
+                user=user, linkwall=self)
+        counter.save()
 
-        
+    def add_click(self, user: User, link: str) -> None:
+        counter = LinkClickCounterModel(user=user,
+                                            linkwall=self, link=link,
+                                            
+                                            )
+        counter.save()
 
 
-    
+class LinkwallViewCounterModel(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    linkwall = models.ForeignKey(LinkWall, on_delete=models.CASCADE)
+    created_on = models.DateTimeField(default=get_current_time)
 
+
+class LinkClickCounterModel(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    linkwall = models.ForeignKey(LinkWall, on_delete=models.CASCADE)
+    link = models.TextField(default='')
+    created_on = models.DateTimeField(default=get_current_time)
