@@ -55,18 +55,8 @@ class LoginFixtures:
 class TestAccountViews(APITestCase):
 
     def setUp(self) -> None:
-        self.account: Account = Account.objects.create(
-            email="bytatigrisdev2022@gmail.com",
-            first_name="Byta",
-            last_name="Tigris",
-            username="bitatigris",
-            entity_type=EntityType.Creator,
-            password="helloword103",
-            description="none cord",
-
-        )
+        self.account, self.token_obj = Account.get_test_account()
         self.content_type = "application/json"
-        self.token_obj: Token = Token.objects.create(user=self.account.user)
         self.autheticated_client = Client(HTTP_AUTHORIZATION=f"Token {self.token_obj.key}", HTTP_CONTENT_TYPE=self.content_type)
         self.client = Client(HTTP_CONTENT_TYPE=self.content_type)
 

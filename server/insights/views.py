@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Tuple, Union
 from django.core.exceptions import BadRequest
 from django.db.models.query_utils import Q
+from django.http.request import QueryDict
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.request import Request
@@ -24,27 +25,33 @@ from utils.types import Platform
 
 
 class RetrieveSocialMediaHandleView(APIView):
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated, AllowAny]
+    permission_classes = [AllowAny]
     serializer_class = SocialMediaHandleSerializer
 
-    def get(self, request: Request, **kwargs) -> Response:
+    def get(self, request: Request, username: str = None, handle_id: str = None) -> Response:
+        """
+        Retrieve all social media handles of any user using username or account requesting
+
+        filters:
+         paltform -- Platform of handles
+         handle_id -- Social media handle
+        """
         _status = status.HTTP_400_BAD_REQUEST
-        response = {}
-        username: str = kwargs.get("username", None)
-        handle_id: str = kwargs.get("handle", None) 
-        platform = None
-        if "platform" in request.GET and len(request.GET["platform"]) > 0:
-            platform = request.GET["platform"][0]
+        response = {} 
+        query_params: QueryDict = request.GET 
+        platform = query_params.get("platform", None)
         try:
-            query: Q = None
-            account: Account = request.account
+            if request.account and username == "me":
+                account: Account = request.account
+                username = account.username
+
+            query: Q = Q(account__username=username)
+
+            if handle_id is None and username is None:
+                raise BadRequest("Either username or handle_id must be provided")
+            
             if handle_id is not None:
                 query  = Q(handle_uid = handle_id)
-            elif username is not None:
-                query = Q(account__username=username)
-            elif account is not None:
-                query  = Q(account=account)
             if platform and query:
                 query &= Q(platform = platform)
             if query is None:
@@ -53,9 +60,9 @@ class RetrieveSocialMediaHandleView(APIView):
             handles: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.select_related('account').filter(query)
             if not handles.exists():
                 raise NoSocialMediaHandleExists(username)
-            serialized = SocialMediaHandleSerializer(handles, many=True)
-            response["data"] = [dict(data) for data in serialized.data]
-                
+            serialized = SocialMediaHandleSerializer(handles, many= handle_id == None)
+            response["data"] = serialized.data
+            _status = status.HTTP_200_OK
         except Exception as err:
             _status = status.HTTP_400_BAD_REQUEST
             if isinstance(err, BadRequest):

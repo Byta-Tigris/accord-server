@@ -1,7 +1,7 @@
 
 ################# Python Built-in imports ####################
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 import string
 import random
 
@@ -9,9 +9,7 @@ import random
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.query_utils import Q
-from django.db.models import JSONField
-from digger.instagram.types import IGUser
-from digger.youtube.types import YTChannel
+from rest_framework.authtoken.models import Token
 
 
 ################# Project Built-in imports ###################
@@ -20,6 +18,8 @@ from django.core.validators import validate_email
 from utils.ad_data import AdRate
 from utils.errors import AccountAlreadyExists, PasswordValidationError
 from utils.types import *
+from digger.instagram.types import IGUser
+from digger.youtube.types import YTChannel
 
 ################# Third-party imports ########################
 from django_cryptography.fields import encrypt
@@ -195,6 +195,24 @@ class Account(models.Model, AccountInterface):
 
     objects: AccountManager = AccountManager()
 
+
+    @staticmethod
+    def get_test_account() -> Tuple['Account', Token]:
+        account: Account = Account.objects.create(
+            email="bytatigrisdev2022@gmail.com",
+            first_name="Byta",
+            last_name="Tigris",
+            username="bitatigris",
+            entity_type=EntityType.Creator,
+            password="helloword103",
+            description="none cord",
+        )
+        token_obj: Token = Token.objects.create(user=account.user)
+        return account, token_obj
+
+
+
+
     def disable_account(self) -> None:
         self.is_disabled_account = True
         self.save()
@@ -285,6 +303,15 @@ class SocialMediaHandle(models.Model):
     is_disabled = models.BooleanField(default=False)
     rates = models.JSONField(default=dict)  # {"ad_name": {...data}}
 
+
+
+    @staticmethod
+    def get_test_handle(platform, account: Account) -> 'SocialMediaHandle':
+        return SocialMediaHandle.objects.create(
+            platform=platform,
+            account=account, handle_url="some-test-url",
+            handle_uid=account.id + platform,
+        )
 
     def get_rate(self, key: str) -> AdRate:
         if key not in self.rates:

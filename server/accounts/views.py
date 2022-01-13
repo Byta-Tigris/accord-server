@@ -455,7 +455,7 @@ class PlatformMetricVisibilityView(APIView):
     permission_classes = [IsAuthenticated]
 
     @staticmethod
-    def get_metrics(private_metrics:Dict[List[str]] = []) -> List[Dict[str, Union[str, bool]]]:
+    def get_metrics(private_metrics:Dict[str, List[str]] = []) -> List[Dict[str, Union[str, bool]]]:
         """
         List[Struct{platform, metric_name, is_visible:bool}]
         """
