@@ -48,7 +48,7 @@ class YoutubeChannelVideoListResponse(ResponseStruct):
 
     def __init__(self, url: str, status_code: int, error=None, nextPageToken: str = None, items: List[Dict] = None,**kwargs) -> None:
         self.error = error
-        self.items = None
+        self.items: List[YTVideo] = None
         if error == None:
             self.items = []
             for video in items:

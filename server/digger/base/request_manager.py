@@ -5,7 +5,6 @@ from .types import AbstractRequestManager, AbstractRequestStruct, AbstractRespon
 from log_engine.log import logger
 import requests
 
-from django.conf import settings
 
 
 class BaseRequestManager(AbstractRequestManager):

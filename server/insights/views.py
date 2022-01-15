@@ -43,7 +43,8 @@ def get_digger(platform: str) -> Digger:
 
 class CreateSocialMediaHandlesView(APIView):
     """
-    
+    Creates social media accounts using `create_or_update_handles_from_data` api
+    provided by each digger.
     """
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]

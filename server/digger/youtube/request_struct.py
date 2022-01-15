@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from digger.base.request_struct import RequestStruct, RequestMethod
 from .response_struct import *
 from utils import DATE_FORMAT as _DATE_FORMAT, get_current_time, get_secret

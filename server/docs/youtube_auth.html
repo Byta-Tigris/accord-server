@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <button id="btn">Login</button>
+    <!-- <form></form> -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.24.0/axios.min.js" integrity="sha512-u9akINsQsAkG9xjc1cnGF4zw5TFDwkxuc9vUp5dltDWYCSmyd0meygbvgXrlc/z7/o4a19Fb5V0OUE58J7dcyw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> -->
+    <script>
+        // var GoogleAuth;
+        function oauthSignIn(){
+            let oauth2Endpoint = 'https://accounts.google.com/o/oauth2/v2/auth';
+            let params = {
+                "client_id": "1008243500476-e5ffi79f2u4hrlvgn34ka2b7btm2l858.apps.googleusercontent.com",
+                "redirect_uri": "http://localhost:5500",
+                "response_type": "code",
+                "scope": "https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtubepartner-channel-audit https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+                "include_granted_scop": true,
+                "state": "random-state",
+                "access_type": "offline"
+            }
+
+            var form = document.createElement('form');
+            form.setAttribute('method', 'GET');
+            form.setAttribute('action', oauth2Endpoint);
+
+            for( var p in params){
+                let input = document.createElement('input');
+                input.setAttribute("type", "hidden");
+                input.setAttribute("name", p);
+                input.setAttribute("value", params[p]);
+                form.appendChild(input);
+            }
+
+            document.body.appendChild(form);
+            form.submit();
+
+             
+        }
+
+        document.getElementById('btn').onclick = function(){
+            oauthSignIn();
+        }
+    </script>
+</body>
+</html>

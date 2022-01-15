@@ -24,7 +24,7 @@ class RequestStruct(AbstractRequestStruct):
                 params[key] = value
             elif key in self.params_data:
                 data[key] = value
-            elif value is not None and key not in self.get_ignorable_fields() and not value.startswith("__"):
+            elif value is not None and key not in self.get_ignorable_fields() and not key.startswith("__"):
                 variables[key]  = value
         if self.method == RequestMethod.Post:
             return (params, variables)
