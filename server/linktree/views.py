@@ -1,5 +1,7 @@
+
 import json
 from typing import Dict
+from django.http import QueryDict
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.request import Request
@@ -9,8 +11,11 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from accounts.models import Account
 from linktree.models import LinkWall
-from linktree.serialzer import LinkWallSerializer
-
+from linktree.serializer import LinkWallSerializer
+from django.contrib.auth.models import User
+from django.db.models import QuerySet
+from utils.errors import NoLinkwallExists
+from log_engine.log import logger
 
 
 
@@ -79,6 +84,41 @@ class RetrieveLinkWall(APIView):
             return Response({"error": "No link wall related to such username"}, status=status.HTTP_404_NOT_FOUND)
         linkwall: LinkWall = linkwall_queryset.first()
         return Response(self.linkwall_serializer(linkwall), status=status.HTTP_200_OK)
+
+
+
+class LinkwallActionAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [AllowAny, IsAuthenticated]
+
+    def get(self, request: Request, username: str) -> Response:
+        _status = status.HTTP_200_OK
+        response = {}
+        params: QueryDict = request.GET
+        try:
+            linkwall_queryset: QuerySet[LinkWall] = LinkWall.objects.filter(account__username=username)
+            if not linkwall_queryset.exists():
+                raise NoLinkwallExists()
+            linkwall: LinkWall = linkwall_queryset.first()
+            user: User = request.user
+            
+            assert "action" in params, "Incomplete request, missing action"
+            if not linkwall.account.user == user:
+                if params.get("action") == "view":
+                    linkwall.add_view(user)
+                elif params.get("action") == "click":
+                    assert "link" in params, "Incomplete request, missing link"
+                    linkwall.add_click(user, params.get("link"))
+            response["data"] = ""
+
+        except Exception as exc:
+            _status = status.HTTP_400_BAD_REQUEST
+            if isinstance(exc, (NoLinkwallExists, AssertionError)):
+                response["error"] = str(exc)
+            else:
+                logger.error(exc)
+        return Response(response, status=_status)
+            
 
 
 
