@@ -18,7 +18,7 @@ class YoutubeExchangeCodeForTokenResponse(ResponseStruct):
         super().__init__(url, status_code, **kwargs)
 
 
-class YoutubeRefreshTokenResposne(ResponseStruct):
+class YoutubeRefreshTokenResponse(ResponseStruct):
 
     def __init__(self, url: str, status_code: int, 
         error = None, access_token: str = None,

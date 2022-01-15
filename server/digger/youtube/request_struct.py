@@ -1,7 +1,7 @@
 from datetime import datetime
 from digger.base.request_struct import RequestStruct, RequestMethod
 from .response_struct import *
-from utils import DATE_FORMAT as _DATE_FORMAT, get_current_time, get_secret
+from utils import  get_current_time, get_secret, YOUTUBE_RESPONSE_DATE_FORMAT as _DATE_FORMAT
 
 
 """
@@ -43,7 +43,7 @@ class YoutubeExchangeCodeForTokenRequest(RequestStruct):
 class YoutubeRefreshTokenRequest(RequestStruct):
     endpoint = "/token"
     method = RequestMethod.Post
-    repsonse_struct = YoutubeRefreshTokenResposne
+    response_struct = YoutubeRefreshTokenResponse
     url_key = "oauth"
 
     def __init__(self, refresh_token: str) -> None:
@@ -141,17 +141,21 @@ class YoutubeMultipleVideoDataRequest(YoutubeAuthorizedRequest):
 
 
 class YoutubeChannelReportRequest(YoutubeAuthorizedAnalyticsRequest):
-    endpoint = "/query"
+    endpoint = "/reports"
     method = RequestMethod.Get
     DATE_FORMAT = _DATE_FORMAT
 
-    def __init__(self, access_token, end_date: datetime = get_current_time(), start_date: datetime = None) -> None:
+    def __init__(self, access_token, end_date: Union[datetime, str] = get_current_time(), start_date: Union[datetime, str, None] = None) -> None:
         self.access_token = access_token
-        self.endDate =end_date
+        self.endDate = end_date
         self.startDate = self.endDate
         if start_date != None:
             self.startDate = start_date
-        self.startDate = self.startDate.strftime(self.DATE_FORMAT)
+        
+        if isinstance(self.endDate, datetime):
+            self.endDate = self.endDate.strftime(self.DATE_FORMAT)
+        if isinstance(self.startDate, datetime):
+            self.startDate = self.startDate.strftime(self.DATE_FORMAT)
         self.ids = "channel==MINE"
         super().__init__()
         
@@ -163,7 +167,7 @@ class YoutubeSubscriptionBasedChannelReportRequest(YoutubeChannelReportRequest):
 
     def __init__(self,access_token: str, end_date: datetime = get_current_time(), start_date: datetime = None) -> None:
         super().__init__(access_token, end_date=end_date, start_date=start_date)
-        self.dimesions = "subscribedStatus,day"
+        self.dimensions = "subscribedStatus,day"
         self.sort = "day"
         self.metrics = ",".join(["views", "estimatedMinutesWatched",
                                  "averageViewDuration", "averageViewPercentage", "annotationClickThroughRate", "annotationCloseRate",
@@ -177,7 +181,7 @@ class YoutubeTimeBasedChannelReportRequest(YoutubeChannelReportRequest):
 
     def __init__(self, access_token: str, end_date: datetime = get_current_time(), start_date: datetime = None, video_id: str = None) -> None:
         super().__init__(access_token, end_date=end_date, start_date=start_date)
-        self.dimesions = "day"
+        self.dimenions = "day"
         self.sort = "day"
         self.metrics = ",".join(["views", "comments", "likes", "dislikes",
                                  "shares", "estimatedMinutesWatched",
