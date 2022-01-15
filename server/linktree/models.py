@@ -1,10 +1,11 @@
+from datetime import datetime
 from django.contrib.auth.models import User
 from typing import Dict, List
 from django.db import models
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 from accounts.models import Account, SocialMediaHandle
-from utils import get_current_time
+from utils import get_current_time, get_modified_time
 # Create your models here.
 
 
@@ -96,21 +97,38 @@ class LinkWall(models.Model):
                     })
 
         self.media_handles = transformed_handles
+    
+    @staticmethod
+    def get_bound_time(self) -> datetime:
+        return get_modified_time(hours=1)
 
     def sync_media_handles(self) -> None:
         self.set_media_handles(self.media_handles)
+    
+    def get_time_bound_query(self) -> Q:
+        current_time = get_current_time()
+        min_time_bound = self.get_bound_time()
+        return Q(created_on__lte = current_time) & Q(created_on__gte=min_time_bound)
 
     def add_view(self, user: User) -> None:
-        counter = LinkwallViewCounterModel(
-                user=user, linkwall=self)
-        counter.save()
+        time_bound_query = self.get_time_bound_query()
+        query = Q(user=user) & Q(linkwall=self) & time_bound_query
+        counter_queryset: QuerySet[LinkwallViewCounterModel] = LinkwallViewCounterModel.objects.filter(query)
+        if not counter_queryset.exists():
+            counter = LinkwallViewCounterModel(
+                 user=user, linkwall=self, created_on=get_current_time())
+            counter.save()
 
     def add_click(self, user: User, link: str) -> None:
-        counter = LinkClickCounterModel(user=user,
+        time_bound_query = self.get_time_bound_query()
+        query = Q(user=user) & Q(linkwall=self) & Q(link=link) & time_bound_query
+        counter_queryset: QuerySet[LinkClickCounterModel]  = LinkClickCounterModel.objects.filter(query)
+        if not counter_queryset.exists():
+            counter = LinkClickCounterModel(user=user,
                                             linkwall=self, link=link,
-                                            
+                                            created_on=get_current_time()
                                             )
-        counter.save()
+            counter.save()
 
 
 class LinkwallViewCounterModel(models.Model):

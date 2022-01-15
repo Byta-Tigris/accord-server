@@ -1,13 +1,11 @@
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 from accounts.models import Account, SocialMediaHandle
-from digger.base.types import Digger, PlatformMetricModel
+from digger.base.types import Digger
 from digger.youtube.request_manager import YoutubeRequestManager
 from digger.youtube.request_struct import *
 from digger.youtube.response_struct import *
-from digger.youtube.types import MetricRecord, YoutubePlatformMetrics
 from insights.models import YoutubeHandleMetricModel
-from utils import merge_metric, reformat_age_gender
 from utils.datastructures import MetricTable
 from utils.errors import OAuthAuthorizationFailure
 from utils.types import Platform
@@ -23,13 +21,13 @@ class YoutubeDigger(Digger):
         response: YoutubeExchangeCodeForTokenResponse = request(self.request_manager)
         return response
     
-    def get_refresh_token(self, social_media_handle: SocialMediaHandle) -> YoutubeRefreshTokenResposne:
+    def get_refresh_token(self, social_media_handle: SocialMediaHandle) -> YoutubeRefreshTokenResponse:
         request = YoutubeRefreshTokenRequest(social_media_handle.refresh_token)
-        response: YoutubeRefreshTokenResposne = request(self.request_manager)
+        response: YoutubeRefreshTokenResponse = request(self.request_manager)
         return response
 
     def refresh_handle_token(self, social_media_handle: SocialMediaHandle) -> Union[SocialMediaHandle, None]:
-        response: YoutubeRefreshTokenResposne = self.get_refresh_token(social_media_handle)
+        response: YoutubeRefreshTokenResponse = self.get_refresh_token(social_media_handle)
         if response.error:
             return None
         social_media_handle.set_access_token(response.access_token, token_expiration_time=response.expires_in, refresh_token=social_media_handle.refresh_token)
