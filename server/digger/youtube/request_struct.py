@@ -181,7 +181,7 @@ class YoutubeTimeBasedChannelReportRequest(YoutubeChannelReportRequest):
 
     def __init__(self, access_token: str, end_date: datetime = get_current_time(), start_date: datetime = None, video_id: str = None) -> None:
         super().__init__(access_token, end_date=end_date, start_date=start_date)
-        self.dimenions = "day"
+        self.dimensions = "day"
         self.sort = "day"
         self.metrics = ",".join(["views", "comments", "likes", "dislikes",
                                  "shares", "estimatedMinutesWatched",

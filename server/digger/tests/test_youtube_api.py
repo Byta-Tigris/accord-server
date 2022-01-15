@@ -34,6 +34,7 @@ class TestYoutubeRequestAPI(TestCase):
         self.assertEqual(response.error, None)
         self.assertNotEqual(response.access_token, None)
         self.token = response.access_token
+        print(self.token)
     
     def test_channel_list_request(self) -> None:
         request = YoutubeChannelListRequest(self.token)
@@ -52,7 +53,7 @@ class TestYoutubeRequestAPI(TestCase):
         for video in response.items:
             self.assertNotEqual(video.id, None)
     
-    def test_subscription_based_report_request(self) -> None:
+    def test_time_based_and_subscription_based_report_request(self) -> None:
         # breakpoint()
         request = YoutubeSubscriptionBasedChannelReportRequest(self.token, start_date="2017-10-07", end_date="2022-01-15")
         response: YoutubeSubscriptionBasedChannelReportsResponse = request(self.request_manager)
@@ -61,6 +62,31 @@ class TestYoutubeRequestAPI(TestCase):
         self.assertNotEqual(response.metrics, None)
         print(response.metrics)
         self.assertGreater(len(response.metrics.views), 0)
+        subscription_based_metrics: YTMetrics = response.metrics
+
+        request = YoutubeTimeBasedChannelReportRequest(self.token, start_date="2017-10-07", end_date="2022-01-15")
+        response: YoutubeTimeBasedChannelReportResponse = request(self.request_manager)
+        print(response.error)
+        self.assertEqual(response.error, None)
+        self.assertNotEqual(response.metrics, None)
+        self.assertGreater(len(response.metrics.views), 0)
+        time_based_metrics: YTMetrics = response.metrics
+
+        # breakpoint()
+        completed_metrics = time_based_metrics + subscription_based_metrics
+        self.assertNotEqual(completed_metrics, None)
+        self.assertGreater(len(completed_metrics.views), 0)
+        for date_str in completed_metrics.views.keys():
+            if date_str in subscription_based_metrics.views:
+                subs_data = subscription_based_metrics.views[date_str]
+                self.assertTrue('SUBSCRIBED' in subs_data or 'UNSUBSCRIBED' in subs_data)
+            if date_str in time_based_metrics.views:
+                times_data = time_based_metrics.views[date_str]
+                self.assertTrue('TOTAL' in times_data)
+            
+
+
+
 
 
 
