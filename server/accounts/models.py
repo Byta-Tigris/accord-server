@@ -92,7 +92,7 @@ class AccountManager(models.Manager):
 
     def refract_kwargs_for_account_creation(self, kwargs: Dict) -> Dict:
         """Remove keyword arguments like email, password, first_name, last_name from kwargs"""
-        return {key: kwargs[key] for key in kwargs.keys() if key not in ["email", "password", "first_name", "last_name", "access_token"]}
+        return {key: kwargs[key] for key in kwargs.keys() if key not in ["email", "password", "first_name", "last_name", "access_token", "uid"]}
     
     def create_user(self, email, password, **kwargs) -> User:
         """Create default User model in database if email doesn't exists -> User"""
@@ -138,7 +138,8 @@ class AccountManager(models.Manager):
         """
         return account_id_generator(email, time)
     
-    def check_user_exists_using_email(self, email: str) -> bool:
+    @staticmethod
+    def check_user_exists_using_email(email: str) -> bool:
         """Verifies the existance of email associated account in the database\n
         Returns: bool\n
         True -- Account exists\n

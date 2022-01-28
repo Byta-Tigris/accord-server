@@ -24,7 +24,8 @@ class AccountSerializer:
             "avatar": account.avatar,
             "banner_image": account.banner_image,
             "entity_type": account.entity_type,
-            "is_disabled_account": account.is_disabled_account
+            "is_disabled_account": account.is_disabled_account,
+            "is_authenticated": True,
         }
         return _ser
     
