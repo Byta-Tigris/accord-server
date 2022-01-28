@@ -40,6 +40,8 @@ SECRET_KEY = 'django-insecure-(j%czj2n#g@&ya1*#=)9*$yb0c_tz-ts-+f9u2neo8=43d78u=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', False) == "True"
 
+#Domain name of the front end site, used for creating httponly cookie
+FRONT_END_DOMAIN = "localhost" 
 
 
 ALLOWED_HOSTS = []
@@ -81,8 +83,10 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'accord.middlewares.HttpOnlyCookieToAuthRequestMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -90,6 +94,17 @@ MIDDLEWARE = [
     
     
 ]
+
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:3000"
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
 
 ROOT_URLCONF = 'accord.urls'
 # AUTH_USER_MODEL = 'accounts.Account'
