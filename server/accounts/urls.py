@@ -11,5 +11,6 @@ urlpatterns = [
     path("retrieve_accounts", RetrieveAccountsFromEmailView.as_view(), name="retrieve-accounts"),
     path("change_password", ChangePasswordView.as_view(), name='change-password'),
     path('handles/me', RetrieveAndDeleteSocialHandlesAPIView.as_view(), name="retrieve-delete-handles"),
-    path("account_metrics_visibility", PlatformMetricVisibilityView.as_view(), name="account-metric-visibility")
+    path("account_metrics_visibility", PlatformMetricVisibilityView.as_view(), name="account-metric-visibility"),
+    path("logout", AccountLogoutAPIVIew.as_view(), name="logout")
 ]
