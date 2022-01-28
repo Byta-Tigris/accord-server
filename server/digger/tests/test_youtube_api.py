@@ -3,6 +3,7 @@ from unittest import TestCase
 from digger.youtube.request_manager import YoutubeRequestManager
 from digger.youtube.request_struct import *
 from utils import get_secret
+from utils.types import YTSubscriptionStatus
 
 
 class TestYoutubeRequestAPI(TestCase):
@@ -79,7 +80,7 @@ class TestYoutubeRequestAPI(TestCase):
         for date_str in completed_metrics.views.keys():
             if date_str in subscription_based_metrics.views:
                 subs_data = subscription_based_metrics.views[date_str]
-                self.assertTrue('SUBSCRIBED' in subs_data or 'UNSUBSCRIBED' in subs_data)
+                self.assertTrue(YTSubscriptionStatus.SUBSCRIBED in subs_data or YTSubscriptionStatus.UNSUBSCRIBED in subs_data)
             if date_str in time_based_metrics.views:
                 times_data = time_based_metrics.views[date_str]
                 self.assertTrue('TOTAL' in times_data)

@@ -7,7 +7,7 @@ from digger.youtube.request_struct import *
 from digger.youtube.response_struct import *
 from insights.models import YoutubeHandleMetricModel
 from utils.datastructures import MetricTable
-from utils.errors import OAuthAuthorizationFailure
+from utils.errors import OAuthPlatformAuthorizationFailure
 from utils.types import Platform
 
 
@@ -71,7 +71,7 @@ class YoutubeDigger(Digger):
         assert "redirect_uri" in kwargs, "Provided data must contain redirect_uri"
         token_response = self.exchange_code_for_token(kwargs["code"], kwargs["redirect_uri"])
         if token_response.error:
-            raise OAuthAuthorizationFailure(Platform.Youtube)
+            raise OAuthPlatformAuthorizationFailure(Platform.Youtube)
         return self.create_or_update_social_media_handles(account, token_response.access_token, token_response.expires_in, refresh_token=token_response.refresh_token)
     
     def create_or_update_social_media_handles(self, account: Account, access_token: str, expires_in: int = 3599, refresh_token: str = None) -> List[SocialMediaHandle]:

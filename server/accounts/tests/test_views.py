@@ -313,20 +313,20 @@ class TestAccountViews(APITestCase):
         fixtures = [
             {
                 "data": {
-                    "username": self.account.username,
+                    "email": self.account.user.email,
                     "access_token": "some-random-state"
                 },
                 "success": False
             },
             {
                 "data": {
-                    "username": self.account.username,
+                    "email": self.account.user.email,
                     "password": "somepassword"
                 },
                 "success": False
             },{
                 "data": {
-                    "username": self.account.username,
+                    "email": self.account.user.email,
                     "password": "small",
                     "access_token": "some-random-state"
                 },
@@ -334,7 +334,7 @@ class TestAccountViews(APITestCase):
             },
             {
                 "data": {
-                    "username": self.account.username,
+                    "email": self.account.user.email,
                     "password": "bytapass",
                     "access_token": "some-random-state"
                 },

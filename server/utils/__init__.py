@@ -19,12 +19,12 @@ def validate_password(password: str) -> bool:
     raises PasswordValidationError if wrong\n
     Returns True"""
     if (
-        5 < len(password) < 21
-        and any(char.isdigit() for char in password)
-        and any(char.isalpha() for char in password)
+        5 < len(password) and len(password) < 21 and 
+        password.isalnum()
     ):
         return True
-    raise PasswordValidationError(password)
+    else:
+        raise PasswordValidationError(password)
 
 
 # DATE-MONTH-YEAR-HOUR-MINUTE-SECOND-MICROSECOND ---- UTC_OFFSET = 0

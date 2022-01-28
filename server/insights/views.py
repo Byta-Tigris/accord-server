@@ -21,7 +21,7 @@ from insights.serializers import LinkwallInsightsSerializer, SocialMediaHandleSe
 from linktree.models import LinkClickCounterModel, LinkWall, LinkwallViewCounterModel
 from log_engine.log import logger
 from utils import datetime_to_unix_timestamp_string, get_current_time, unix_string_to_datetime
-from utils.errors import AccountAuthenticationFailed, AccountDoesNotExists, NoSocialMediaHandleExists, OAuthAuthorizationFailure
+from utils.errors import AccountAuthenticationFailed, AccountDoesNotExists, NoSocialMediaHandleExists, OAuthPlatformAuthorizationFailure
 from utils.types import Platform
 from rest_framework.decorators import api_view, permission_classes
 
@@ -68,7 +68,7 @@ class CreateSocialMediaHandlesView(APIView):
             _status = status.HTTP_201_CREATED
         except Exception as err:
             _status = status.HTTP_400_BAD_REQUEST
-            if isinstance(err, (AssertionError, OAuthAuthorizationFailure, BadRequest)):
+            if isinstance(err, (AssertionError, OAuthPlatformAuthorizationFailure, BadRequest)):
                 response["error"] = str(err)
             else:
                 response["error"] = "Unable to retrieve information from Instagram"

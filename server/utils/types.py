@@ -46,7 +46,7 @@ class RequestMethod:
     Post = "POST"
 
 
-class YTSubscribtionStatus:
+class YTSubscriptionStatus:
     UNSUBSCRIBED = "UNSUBSCRIBED"
     SUBSCRIBED = "SUBSCRIBED"
 

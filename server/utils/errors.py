@@ -16,12 +16,13 @@ class AccountAlreadyExists(Exception):
 class PasswordValidationError(Exception):
 
     def __init__(self, password: str) -> None:
-        super().__init__(f"{password}: is not valid, enter password with len in range of 8 to 20 chars and containing alphabets and numbers.")
+        super().__init__(f"{password} is not valid, enter password with len in range of 5 to 21 chars and containing alphabets and numbers")
 
 
-class NoAccountsExists(Exception):
+class NoAccountsExistsRelatedWithEmail(Exception):
     def __init__(self, email:str) -> None:
         super().__init__(f"No account exists related with {email}")
+
 class AccountDoesNotExists(Exception):
     def __init__(self, username: str) -> None:
         super().__init__(f"Account with username {username} does not exists")
@@ -31,9 +32,13 @@ class InvalidAuthentication(Exception):
         super().__init__(f"Authentication for account {username} is invalid")
 
 
-class OAuthAuthorizationFailure(Exception):
+class OAuthPlatformAuthorizationFailure(Exception):
     def __init__(self, platform: str) -> None:
         super().__init__(f"{platform} authorization failed")
+
+class GoogleOAuthAuthorizationFailure(Exception):
+    def __init__(self, ) -> None:
+        super().__init__(f"OAuth Authorization of your email failed. Try again")
 
 
 class NoSocialMediaHandleExists(Exception):
