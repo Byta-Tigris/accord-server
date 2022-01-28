@@ -390,7 +390,7 @@ class ResetPasswordView(APIView, AuthenticationEngine):
                     raise err
                 else:
                     logger.error(err)
-        return Response(response, status=_status), response
+        return Response(response, status=_status)
 
 
 class ChangePasswordView(APIView):
