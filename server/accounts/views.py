@@ -414,7 +414,8 @@ class ChangePasswordView(APIView):
             user.set_password(data["password"])
             user.save()
             _status = status.HTTP_202_ACCEPTED
-            response["data"]["updated"] = user.check_password(data["password"])
+           
+            response["data"] = {"updated" : user.check_password(data["password"])}
         except Exception as err:
             _status = status.HTTP_400_BAD_REQUEST
             if isinstance(err, (InvalidAuthentication, PasswordValidationError)):
@@ -422,7 +423,7 @@ class ChangePasswordView(APIView):
                 response = {"error": repr(err)}
             elif isinstance(err, (AssertionError, ValueError, KeyError)):
                 _status = status.HTTP_400_BAD_REQUEST
-                response = {"error": repr(err)}
+                response = {"error": str(err)}
             else:
                 logger.error(err)
         return Response(response, status=_status)
