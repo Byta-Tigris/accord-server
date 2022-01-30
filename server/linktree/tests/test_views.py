@@ -5,7 +5,7 @@ from django.urls import reverse
 from rest_framework.authtoken.models import Token
 
 from accounts.models import Account
-from utils.types import EntityType, LinkwallManageActions
+from utils.types import EntityType, LinkwallLinkTypes, LinkwallManageActions
 
 # Create your tests here.
 
@@ -64,3 +64,32 @@ class TestLinkWallViews(TestCase):
             data = body["data"]
             self.assertTrue(any(map(lambda _link: _link["name"] == link["name"] and _link["url"] == link["url"], data["links"] )))
 
+
+    def test_edit_link(self) -> None:
+        links = [
+            {
+                "name": "Required",
+                "url": "https://iconscout.com/unicons/explore/line/required",
+            }, {
+                "name": "Requirement",
+                "url": "https://iconscout.com/unicons/explore/line/requirement",
+            }
+        ]
+        for link in links:
+            res = self.autheticated_client.post(reverse("manage-linkwall", args=[LinkwallManageActions.AddLink]), data={"links": [link]}, content_type=self.content_type)
+        
+        edit_links = [
+            {
+                "name": "Required All the way",
+                "url": "https://iconscout.com/unicons/explore/line/required",
+                "type": LinkwallLinkTypes.VideoLink
+            }
+        ]
+        for link in edit_links:
+            res = self.autheticated_client.post(reverse("manage-linkwall", args=[LinkwallManageActions.EditLink]), data={"link": link}, content_type=self.content_type)
+            self.assertEqual(res.status_code, 202)
+            data = res.json()["data"]
+            print(data)
+            def validate_link(provided: Dict, link: Dict) -> bool:
+                return provided["name"] == link["name"] and provided["type"] == link["type"]
+            self.assertTrue(any(map(lambda _data: validate_link(_data, link), data["links"])))

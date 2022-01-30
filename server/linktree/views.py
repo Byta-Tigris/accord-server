@@ -115,10 +115,13 @@ def edit_link(request: Request) -> Response:
         if "icon" in data["link"]:
             link.icon = data["link"]["icon"]
         if "name" in data["link"]:
-            link.name = data["linkn"]["name"]
+            link.name = data["link"]["name"]
         if "is_visible" in data["link"]:
             link.is_visible = data["link"]["is_visible"]
+        if "type" in data["link"]:
+            link.type = data["link"]["type"]
         link.save()
+        linkwall.refresh_from_db()
         response["data"] = serializer(linkwall, request.account.username)
         _status = status.HTTP_202_ACCEPTED
 
@@ -143,6 +146,7 @@ def remove_link(request: Request) -> Response:
         links_queryset: QuerySet[LinkWallLink] = linkwall.links.filter(url__in=data["links"])
         if links_queryset.exists():
             links_queryset.delete()
+        linkwall.refresh_from_db()
         response["data"] = serializer(linkwall, request.account.username)
         _status = status.HTTP_202_ACCEPTED
 
@@ -230,6 +234,7 @@ def remove_media_handle(request: Request, username: str) -> Response:
         assert "media_handles" in data and len(data["media_handles"]) > 0, "Links must be provided"
         linkwall = get_linkwall(request)
         linkwall.remove_handles(data["media_handles"])
+        linkwall.refresh_from_db()
         response["data"] = serializer(linkwall, request.account.username)
         _status = status.HTTP_202_ACCEPTED
 
