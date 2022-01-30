@@ -168,7 +168,8 @@ def change_asset(request: Request) -> Response:
         assert "asset" in data and len(data["asset"]) > 0, "Assets must be provided"
         linkwall = get_linkwall(request)
         for key, value in data["asset"].items():
-            setattr(linkwall, key, value)
+            if key in ["background_image", "avatar_image", "description", "display_name"]:
+                setattr(linkwall, key, value)
         linkwall.save()
         response["data"] = serializer(linkwall, request.account.username)
         _status = status.HTTP_202_ACCEPTED

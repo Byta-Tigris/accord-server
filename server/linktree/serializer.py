@@ -1,4 +1,3 @@
-
 from typing import Dict, Iterable, List, Union
 from .models import LinkWall, LinkWallLink, LinkwallMediaHandles
 from django.urls import reverse

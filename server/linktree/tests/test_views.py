@@ -93,3 +93,64 @@ class TestLinkWallViews(TestCase):
             def validate_link(provided: Dict, link: Dict) -> bool:
                 return provided["name"] == link["name"] and provided["type"] == link["type"]
             self.assertTrue(any(map(lambda _data: validate_link(_data, link), data["links"])))
+    
+    def test_remove_link(self) -> None:
+        links = [
+            {
+                "name": "Required",
+                "url": "https://iconscout.com/unicons/explore/line/required",
+            }, {
+                "name": "Requirement",
+                "url": "https://iconscout.com/unicons/explore/line/requirement",
+            }
+        ]
+        for link in links:
+            res = self.autheticated_client.post(reverse("manage-linkwall", args=[LinkwallManageActions.AddLink]), data={"links": [link]}, content_type=self.content_type)
+        
+        remove_links = ["https://iconscout.com/unicons/explore/line/required"]
+        for link in remove_links:
+            res = self.autheticated_client.post(reverse("manage-linkwall", args=[LinkwallManageActions.RemoveLink]), data={"links":[ link]}, content_type=self.content_type)
+            self.assertEqual(res.status_code, 202)
+            data = res.json()["data"]
+            print(data)
+            self.assertEqual(len(data["links"]), 1)
+    
+    def test_change_asset_link(self) -> None:
+        links = [
+            {
+                "name": "Required",
+                "url": "https://iconscout.com/unicons/explore/line/required",
+            }, {
+                "name": "Requirement",
+                "url": "https://iconscout.com/unicons/explore/line/requirement",
+            }
+        ]
+        for link in links:
+            res = self.autheticated_client.post(reverse("manage-linkwall", args=[LinkwallManageActions.AddLink]), data={"links": [link]}, content_type=self.content_type)
+        
+        assets = [
+            {
+                "background_image": "https://www.geeksforgeeks.org/prefetch_related-and-select_related-functions-in-django/"
+            },
+            {
+                "background_image": "https://www.geeksforgeeks.org/prefetch_related-and-select_related-functions-in-django/d",
+                "display_name": "Random Guy"
+            }, {
+                "avatar_image": "https://stackoverflow.com/questions/15933689/how-to-get-primary-keys-of-objects-created-using-django-bulk-create",
+                "description": "Twisted men"
+            }
+        ]
+        for asset in assets:
+            res = self.autheticated_client.post(reverse("manage-linkwall", args=[LinkwallManageActions.EditAssets]), data={"asset": asset}, content_type=self.content_type)
+            self.assertEqual(res.status_code, 202)
+            data = res.json()["data"]
+            self.assertGreater(len(data["assets"]), 0)
+            for key, value in asset.items():
+                if key in data:
+                    self.assertEqual(data[key], value)
+                elif key in data["assets"]:
+                    self.assertEqual(data["assets"][key], value)
+                else:
+                    self.fail()
+
+        
