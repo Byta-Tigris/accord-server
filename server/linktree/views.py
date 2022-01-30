@@ -159,16 +159,16 @@ def remove_link(request: Request) -> Response:
     return Response(response, status=_status)
     
 
-def change_asset(request: Request) -> Response:
+def edit_props(request: Request) -> Response:
     data = json.loads(request.body)
     response = {}
     _status = status.HTTP_400_BAD_REQUEST
     serializer = LinkWallSerializer()
     try:
-        assert "asset" in data and len(data["asset"]) > 0, "Assets must be provided"
+        assert "props" in data and len(data["props"]) > 0, "Data must be provided"
         linkwall = get_linkwall(request)
-        for key, value in data["asset"].items():
-            if key in ["background_image", "avatar_image", "description", "display_name"]:
+        for key, value in data["props"].items():
+            if key in ["background_image", "avatar_image", "display_name", "description", "styles"]:
                 setattr(linkwall, key, value)
         linkwall.save()
         response["data"] = serializer(linkwall, request.account.username)
@@ -180,29 +180,6 @@ def change_asset(request: Request) -> Response:
             logger.error(exc)
             response["error"] = "Unexpected error. Try again"
     return Response(response, status=_status)
-
-
-def set_props(request: Request) -> Response:
-    data = json.loads(request.body)
-    response = {}
-    _status = status.HTTP_400_BAD_REQUEST
-    serializer = LinkWallSerializer()
-    try:
-        assert "props" in data and len(data["props"]) > 0, "Display name or Description must be provided"
-        linkwall = get_or_create_linkwall(request)
-        for key, value in data["props"].items():
-            setattr(linkwall, key, value)
-        linkwall.save()
-        response["data"] = serializer(linkwall, request.account.username)
-        _status = status.HTTP_202_ACCEPTED
-    except Exception as exc:
-        if isinstance(exc, (AccountAuthenticationFailed, NoLinkwallExists)):
-            response["error"] = str(exc)
-        else:
-            logger.error(exc)
-            response["error"] = "Unexpected error. Try again"
-    return Response(response, status=_status)
-
 
 def set_media_handles(request: Request) -> Response:
     data = json.loads(request.body)
@@ -257,8 +234,7 @@ class ManageLinkwallAPIView(APIView):
             LinkwallManageActions.AddLink: add_link,
             LinkwallManageActions.EditLink: edit_link,
             LinkwallManageActions.RemoveLink: remove_link,
-            LinkwallManageActions.EditProps: set_props,
-            LinkwallManageActions.EditAssets: change_asset,
+            LinkwallManageActions.EditProps: edit_props,
             LinkwallManageActions.AddHandles: set_media_handles,
             LinkwallManageActions.RemoveHandles: remove_media_handle
         }

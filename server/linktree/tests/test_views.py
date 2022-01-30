@@ -141,7 +141,7 @@ class TestLinkWallViews(TestCase):
             }
         ]
         for asset in assets:
-            res = self.autheticated_client.post(reverse("manage-linkwall", args=[LinkwallManageActions.EditAssets]), data={"asset": asset}, content_type=self.content_type)
+            res = self.autheticated_client.post(reverse("manage-linkwall", args=[LinkwallManageActions.EditProps]), data={"props": asset}, content_type=self.content_type)
             self.assertEqual(res.status_code, 202)
             data = res.json()["data"]
             self.assertGreater(len(data["assets"]), 0)

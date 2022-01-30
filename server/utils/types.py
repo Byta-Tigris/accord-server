@@ -96,6 +96,5 @@ class LinkwallManageActions:
     AddLink = "add_link"
     RemoveLink = "remove_link"
     EditProps = "edit_props"
-    EditAssets = "change_assets"
     AddHandles = "add_handles"
     RemoveHandles = "remove_handles"
