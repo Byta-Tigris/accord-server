@@ -5,12 +5,13 @@ from django.urls import reverse
 from rest_framework.authtoken.models import Token
 
 from accounts.models import Account
-from utils.types import EntityType
+from utils.types import EntityType, LinkwallManageActions
 
 # Create your tests here.
 
 
 class TestLinkWallViews(TestCase):
+
     def setUp(self) -> None:
         self.account: Account = Account.objects.create(
             email="bytatigrisdev2022@gmail.com",
@@ -33,12 +34,11 @@ class TestLinkWallViews(TestCase):
             "name": "Maritime",
             "url": "https://iconscout.com/unicons/explore/line",
         }]
-        breakpoint()
-        res = self.client.post(
-            reverse("add-link"), data={"links": links}, content_type=self.content_type)
+        # breakpoint()
+        res = self.autheticated_client.post(reverse("manage-linkwall", args=[LinkwallManageActions.AddLink]), data={"links": links}, content_type=self.content_type)
         self.assertEqual(res.status_code, 202)
         body = res.json()
-        self.assertEqual("data" in body)
+        self.assertTrue("data" in body)
         data = body["data"]
         self.assertEqual(data["username"], self.account.username)
         self.assertEqual(data["description"], self.account.description)
@@ -57,11 +57,10 @@ class TestLinkWallViews(TestCase):
         ]
 
         for link in links:
-            res = self.client.post(
-                reverse("add-link"), data={"links": [link]}, content_type=self.content_type)
+            res = self.autheticated_client.post(reverse("manage-linkwall", args=[LinkwallManageActions.AddLink]), data={"links": [link]}, content_type=self.content_type)
             self.assertEqual(res.status_code, 202)
             body = res.json()
-            self.assertEqual("data" in body)
+            self.assertTrue("data" in body)
             data = body["data"]
             self.assertTrue(any(map(lambda _link: _link["name"] == link["name"] and _link["url"] == link["url"], data["links"] )))
 

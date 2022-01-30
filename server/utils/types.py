@@ -90,3 +90,12 @@ class LinkwallLinkTypes :
     ContactDetail = "contact_detail"
     FormLink = "form_link"
     Normal = "normal"
+
+class LinkwallManageActions:
+    EditLink = "edit_link"
+    AddLink = "add_link"
+    RemoveLink = "remove_link"
+    EditProps = "edit_props"
+    EditAssets = "change_assets"
+    AddHandles = "add_handles"
+    RemoveHandles = "remove_handles"

@@ -18,6 +18,8 @@ from utils.errors import AccountAuthenticationFailed, AccountDoesNotExists, NoLi
 from log_engine.log import logger
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 
+from utils.types import LinkwallManageActions
+
 
 
 
@@ -57,7 +59,7 @@ def get_linkwall(request: Request) -> LinkWall:
     if not request.account:
         raise AccountAuthenticationFailed()
     account: Account = request.account
-    linkwall_queryset: QuerySet[LinkWall] = LinkWall.objects.select_related("links", "media_handles").filter(account=account)
+    linkwall_queryset: QuerySet[LinkWall] = LinkWall.objects.prefetch_related("links", "media_handles").filter(account=account)
     if not linkwall_queryset.exists():
         raise NoLinkwallExists()
     return linkwall_queryset.first()
@@ -67,7 +69,7 @@ def get_or_create_linkwall(request: Request) -> LinkWall:
         return get_linkwall(request)
     except NoLinkwallExists as err:
         account: Account = request.account
-        return LinkWall(
+        return LinkWall.objects.create(
             account=account,
             avatar_image=account.avatar,
             description=account.description,
@@ -75,20 +77,19 @@ def get_or_create_linkwall(request: Request) -> LinkWall:
         )
 
 
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-@api_view(["POST"])
+
 def add_link(request: Request) -> Response:
-    data = json.load(request.body)
+    data = json.loads(request.body)
     response = {}
     _status = status.HTTP_400_BAD_REQUEST
     serializer = LinkWallSerializer()
     try:
-        assert "links" in data and data["links"] > 0, "Links must be provided"
+        assert "links" in data and len(data["links"]) > 0, "Links must be provided"
         linkwall = get_or_create_linkwall(request)
-        links = linkwall.links.bulk_create([LinkWallLink(**link) for link in data["links"]],ignore_conflicts=True)
+        links = linkwall.links.bulk_create([LinkWallLink(**link) for link in data["links"]])
         linkwall.links.add(*links)
-        response["data"] = serializer(linkwall)
+        linkwall.refresh_from_db()
+        response["data"] = serializer(linkwall, request.account.username)
         _status = status.HTTP_202_ACCEPTED
     except Exception as exc:
         if isinstance(exc, (AccountAuthenticationFailed, NoLinkwallExists)):
@@ -99,16 +100,13 @@ def add_link(request: Request) -> Response:
     return Response(response, status=_status)
 
 
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-@api_view(["POST"])
 def edit_link(request: Request) -> Response:
-    data = json.load(request.body)
+    data = json.loads(request.body)
     response = {}
     _status = status.HTTP_400_BAD_REQUEST
     serializer = LinkWallSerializer()
     try:
-        assert "link" in data and data["link"] > 0, "Links must be provided"
+        assert "link" in data and len(data["link"]) > 0, "Links must be provided"
         linkwall = get_linkwall(request)
         link_queryset: QuerySet[LinkWallLink] = linkwall.links.filter(url=data["link"]["url"])
         if not link_queryset.exists():
@@ -134,18 +132,13 @@ def edit_link(request: Request) -> Response:
 
 
 
-
-
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-@api_view(["POST"])
 def remove_link(request: Request) -> Response:
-    data = json.load(request.body)
+    data = json.loads(request.body)
     response = {}
     _status = status.HTTP_400_BAD_REQUEST
     serializer = LinkWallSerializer()
     try:
-        assert "links" in data and data["links"] > 0, "Links must be provided"
+        assert "links" in data and len(data["links"]) > 0, "Links must be provided"
         linkwall = get_linkwall(request)
         links_queryset: QuerySet[LinkWallLink] = linkwall.links.filter(url__in=data["links"])
         if links_queryset.exists():
@@ -162,16 +155,13 @@ def remove_link(request: Request) -> Response:
     return Response(response, status=_status)
     
 
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-@api_view(["POST"])
 def change_asset(request: Request) -> Response:
-    data = json.load(request.body)
+    data = json.loads(request.body)
     response = {}
     _status = status.HTTP_400_BAD_REQUEST
     serializer = LinkWallSerializer()
     try:
-        assert "asset" in data and data["asset"] > 0, "Assets must be provided"
+        assert "asset" in data and len(data["asset"]) > 0, "Assets must be provided"
         linkwall = get_linkwall(request)
         for key, value in data["asset"].items():
             setattr(linkwall, key, value)
@@ -186,16 +176,14 @@ def change_asset(request: Request) -> Response:
             response["error"] = "Unexpected error. Try again"
     return Response(response, status=_status)
 
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-@api_view(["POST"])
+
 def set_props(request: Request) -> Response:
-    data = json.load(request.body)
+    data = json.loads(request.body)
     response = {}
     _status = status.HTTP_400_BAD_REQUEST
     serializer = LinkWallSerializer()
     try:
-        assert "props" in data and data["props"] > 0, "Display name or Description must be provided"
+        assert "props" in data and len(data["props"]) > 0, "Display name or Description must be provided"
         linkwall = get_or_create_linkwall(request)
         for key, value in data["props"].items():
             setattr(linkwall, key, value)
@@ -210,18 +198,17 @@ def set_props(request: Request) -> Response:
             response["error"] = "Unexpected error. Try again"
     return Response(response, status=_status)
 
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-@api_view(["POST"])
+
 def set_media_handles(request: Request) -> Response:
-    data = json.load(request.body)
+    data = json.loads(request.body)
     response = {}
     _status = status.HTTP_400_BAD_REQUEST
     serializer = LinkWallSerializer()
     try:
-        assert "media_handles" in data and data["media_handles"] > 0, "Media handles must be provided"
+        assert "media_handles" in data and len(data["media_handles"]) > 0, "Media handles must be provided"
         linkwall = get_or_create_linkwall(request)
         linkwall.media_handles.bulk_create([LinkwallMediaHandles(**handle) for handle in data["media_handles"]])
+        linkwall.refresh_from_db()
         response["data"] = serializer(linkwall, request.account.username)
         _status = status.HTTP_202_ACCEPTED
 
@@ -233,16 +220,14 @@ def set_media_handles(request: Request) -> Response:
             response["error"] = "Unexpected error. Try again"
     return Response(response, status=_status)
 
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-@api_view(["POST"])
+
 def remove_media_handle(request: Request, username: str) -> Response:
-    data = json.load(request.body)
+    data = json.loads(request.body)
     response = {}
     _status = status.HTTP_400_BAD_REQUEST
     serializer = LinkWallSerializer()
     try:
-        assert "media_handles" in data and data["media_handles"] > 0, "Links must be provided"
+        assert "media_handles" in data and len(data["media_handles"]) > 0, "Links must be provided"
         linkwall = get_linkwall(request)
         linkwall.remove_handles(data["media_handles"])
         response["data"] = serializer(linkwall, request.account.username)
@@ -255,6 +240,27 @@ def remove_media_handle(request: Request, username: str) -> Response:
             logger.error(exc)
             response["error"] = "Unexpected error. Try again"
     return Response(response, status=_status)
+
+
+class ManageLinkwallAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request, action: str) -> Response:
+        calback_map = {
+            LinkwallManageActions.AddLink: add_link,
+            LinkwallManageActions.EditLink: edit_link,
+            LinkwallManageActions.RemoveLink: remove_link,
+            LinkwallManageActions.EditProps: set_props,
+            LinkwallManageActions.EditAssets: change_asset,
+            LinkwallManageActions.AddHandles: set_media_handles,
+            LinkwallManageActions.RemoveHandles: remove_media_handle
+        }
+        if action not in calback_map:
+            return Response({"error": f"Invalid action {action}"}, status=status.HTTP_400_BAD_REQUEST)
+        callback = calback_map[action]
+        return callback(request)
+
 
 
 class RetrieveLinkWall(APIView):
