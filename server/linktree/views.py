@@ -168,7 +168,7 @@ def edit_props(request: Request) -> Response:
         assert "props" in data and len(data["props"]) > 0, "Data must be provided"
         linkwall = get_linkwall(request)
         for key, value in data["props"].items():
-            if key in ["background_image", "avatar_image", "display_name", "description", "styles"]:
+            if key in ["background_image", "avatar_image", "display_name", "description"]:
                 setattr(linkwall, key, value)
         linkwall.save()
         response["data"] = serializer(linkwall, request.account.username)

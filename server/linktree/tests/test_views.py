@@ -116,7 +116,7 @@ class TestLinkWallViews(TestCase):
             print(data)
             self.assertEqual(len(data["links"]), 1)
     
-    def test_change_asset_link(self) -> None:
+    def test_edit_props_link(self) -> None:
         links = [
             {
                 "name": "Required",
