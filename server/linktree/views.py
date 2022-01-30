@@ -189,12 +189,14 @@ def set_media_handles(request: Request) -> Response:
     try:
         assert "media_handles" in data and len(data["media_handles"]) > 0, "Media handles must be provided"
         linkwall = get_or_create_linkwall(request)
-        linkwall.media_handles.bulk_create([LinkwallMediaHandles(**handle) for handle in data["media_handles"]])
+        links = linkwall.media_handles.bulk_create([LinkwallMediaHandles(**handle) for handle in data["media_handles"] if "url" in handle])
+        linkwall.media_handles.add(*links)
         linkwall.refresh_from_db()
         response["data"] = serializer(linkwall, request.account.username)
         _status = status.HTTP_202_ACCEPTED
 
     except Exception as exc:
+        raise exc
         if isinstance(exc, (AccountAuthenticationFailed, NoLinkwallExists, NoLinkExists)):
             response["error"] = str(exc)
         else:
