@@ -51,7 +51,7 @@ class LinkWall(models.Model):
     links -- Links Record, ManyToManyField[LinkWallLink]
     styles -- Style of the wall, css properties
     {
-        class_name {
+        component {
             property_name: property_value
         }
     }

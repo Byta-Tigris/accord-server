@@ -6,7 +6,7 @@ from django.urls import reverse
 from rest_framework.authtoken.models import Token
 
 from accounts.models import Account
-from utils.types import EntityType, LinkwallLinkTypes, LinkwallManageActions, Platform
+from utils.types import EntityType, LinkWallComponents, LinkwallLinkTypes, LinkwallManageActions, Platform
 
 # Create your tests here.
 
@@ -206,6 +206,72 @@ class TestLinkWallViews(TestCase):
             self.assertEqual(res.status_code, 202)
             data = res.json()["data"]
             self.assertEqual(len(data["media_handles"]), 1)
+    
+    def test_edit_styles(self) -> None:
+
+        auth_call = lambda styles, action = LinkwallManageActions.EditStyle: self.autheticated_client.post(reverse("manage-linkwall", args=[action]), data={"styles": styles}, content_type=self.content_type)
+
+        styles = {
+            LinkWallComponents.LinkButton: {
+                "borderRadius": "2rem",
+                "backgroundColor": "#FFFFFF",
+                "fontFamily": "Poppins"
+            },
+            LinkWallComponents.Background: {
+                "fontFamily": "Work-Sans",
+                "color": "#000000"
+            }
+        }
+
+        res = auth_call(styles)
+        self.assertEqual(res.status_code, 202)
+        data = res.json()["data"]
+        self.assertEqual(data["assets"]["styles"], styles)
+
+        edited_styles = {
+            LinkWallComponents.Background: {
+                "backgroundColor": "#FFFFFF"
+            }
+        }
+        res = auth_call(edited_styles)
+        self.assertEqual(res.status_code, 202)
+        data = res.json()["data"]
+        self.assertTrue("styles" in data["assets"])
+        styles = data["assets"]["styles"]
+        for component, prop in edited_styles.items():
+            self.assertTrue(component in styles)
+            for property_name, propert_value in prop.items():
+                self.assertTrue(property_name in styles[component])
+                self.assertEqual(styles[component][property_name], propert_value)
+        
+        remove_property = {
+            LinkWallComponents.Background: ["backgroundColor"],
+            LinkWallComponents.LinkButton: ["fontFamily"]
+        }
+
+        res = auth_call(remove_property, action=LinkwallManageActions.RemoveStyle)
+        self.assertEqual(res.status_code, 202)
+        data = res.json()["data"]
+        self.assertTrue("styles" in data["assets"])
+        styles = data["assets"]["styles"]
+        for component, props in remove_property.items():
+            self.assertTrue(component in styles)
+            for prop in props:
+                self.assertFalse(prop in styles[component])
+
+        remove_components = {
+            LinkWallComponents.Background: []
+        }
+        res = auth_call(remove_components, action=LinkwallManageActions.RemoveStyle)
+        self.assertEqual(res.status_code, 202)
+        data = res.json()["data"]
+        self.assertTrue("styles" in data["assets"])
+        styles = data["assets"]["styles"]
+        for component, props in remove_components.items():
+            self.assertFalse(component in styles)
+
+
+
 
 
         

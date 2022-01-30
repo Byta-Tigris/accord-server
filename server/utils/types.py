@@ -98,3 +98,10 @@ class LinkwallManageActions:
     EditProps = "edit_props"
     AddHandles = "add_handles"
     RemoveHandles = "remove_handles"
+    EditStyle= "edit_style"
+    RemoveStyle = "remove_style"
+
+class LinkWallComponents:
+    LinkButton = "link-button"
+    LinkText = "link-text"
+    Background = "background"

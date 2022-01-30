@@ -226,6 +226,69 @@ def remove_media_handle(request: Request) -> Response:
     return Response(response, status=_status)
 
 
+def edit_style(request: Request) -> Response:
+    """
+    Request Data:
+    {styles: {component: {propert_name: property_value}}}
+    """
+    data = json.loads(request.body)
+    response = {}
+    _status = status.HTTP_400_BAD_REQUEST
+    serializer = LinkWallSerializer()
+    try:
+        assert "styles" in data and len(data["styles"]) > 0, "Styles must be provided"
+        linkwall = get_or_create_linkwall(request)
+        for component, props in data["styles"].items():
+            if component not in linkwall.styles:
+                linkwall.styles[component] = {}
+            for property_name, property_value in props.items():
+                linkwall.styles[component][property_name] = property_value
+        linkwall.save()
+        response["data"] = serializer(linkwall, request.account.username)
+        _status = status.HTTP_202_ACCEPTED
+
+    except Exception as exc:
+        if isinstance(exc, (AccountAuthenticationFailed, NoLinkwallExists, NoLinkExists)):
+            response["error"] = str(exc)
+        else:
+            logger.error(exc)
+            response["error"] = "Unexpected error. Try again"
+    return Response(response, status=_status)
+
+
+def remove_style(request: Request) -> Response:
+    """
+    Request Data:
+    {styles: {component: [property_name]}}
+    """
+    data = json.loads(request.body)
+    response = {}
+    _status = status.HTTP_400_BAD_REQUEST
+    serializer = LinkWallSerializer()
+    try:
+        assert "styles" in data and len(data["styles"]) > 0, "Styles must be provided"
+        linkwall = get_or_create_linkwall(request)
+        for component, props in data["styles"].items():
+            if component in linkwall.styles:
+                if len(props) == 0:
+                    del linkwall.styles[component]
+                else:
+                    for property_name in props:
+                        del linkwall.styles[component][property_name]
+        linkwall.save()
+        response["data"] = serializer(linkwall, request.account.username)
+        _status = status.HTTP_202_ACCEPTED
+
+    except Exception as exc:
+        if isinstance(exc, (AccountAuthenticationFailed, NoLinkwallExists, NoLinkExists)):
+            response["error"] = str(exc)
+        else:
+            logger.error(exc)
+            response["error"] = "Unexpected error. Try again"
+    return Response(response, status=_status)
+
+
+
 class ManageLinkwallAPIView(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
@@ -237,7 +300,9 @@ class ManageLinkwallAPIView(APIView):
             LinkwallManageActions.RemoveLink: remove_link,
             LinkwallManageActions.EditProps: edit_props,
             LinkwallManageActions.AddHandles: set_media_handles,
-            LinkwallManageActions.RemoveHandles: remove_media_handle
+            LinkwallManageActions.RemoveHandles: remove_media_handle,
+            LinkwallManageActions.EditStyle: edit_style,
+            LinkwallManageActions.RemoveStyle: remove_style
         }
         if action not in calback_map:
             return Response({"error": f"Invalid action {action}"}, status=status.HTTP_400_BAD_REQUEST)
