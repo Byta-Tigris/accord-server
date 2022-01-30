@@ -179,11 +179,33 @@ class TestLinkWallViews(TestCase):
                     else:
                         rt &= key in data and data[key] == value
                 return rt
-                
+
             self.assertTrue(handle["platform"] in data["media_handles"])
             handles = data["media_handles"][handle["platform"]]
             self.assertTrue(any(map(lambda _data: validate_handle(_data), handles)))
+    
+    def test_remove_media_handles(self) -> None:
 
+        handles = [
+            {
+                "platform": Platform.Instagram,
+                "url": "https://iconscout.com/unicons/explore/line/requirement",
+                "username": "Meta kritic"
+            },{
+                "platform": "twitch",
+                "url": "https://iconscout.com/unicons/explore/line/requirement/twitch"
+            }
+        ]
+
+        for handle in handles:
+            res = self.autheticated_client.post(reverse("manage-linkwall", args=[LinkwallManageActions.AddHandles]), data={"media_handles": [handle]}, content_type=self.content_type)
+            
+        remove_handles = ["https://iconscout.com/unicons/explore/line/requirement/twitch"]
+        for handle in remove_handles:
+            res = self.autheticated_client.post(reverse("manage-linkwall", args=[LinkwallManageActions.RemoveHandles]), data={"media_handles": [handle]}, content_type=self.content_type)
+            self.assertEqual(res.status_code, 202)
+            data = res.json()["data"]
+            self.assertEqual(len(data["media_handles"]), 1)
 
 
         

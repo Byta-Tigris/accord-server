@@ -196,7 +196,6 @@ def set_media_handles(request: Request) -> Response:
         _status = status.HTTP_202_ACCEPTED
 
     except Exception as exc:
-        raise exc
         if isinstance(exc, (AccountAuthenticationFailed, NoLinkwallExists, NoLinkExists)):
             response["error"] = str(exc)
         else:
@@ -205,7 +204,7 @@ def set_media_handles(request: Request) -> Response:
     return Response(response, status=_status)
 
 
-def remove_media_handle(request: Request, username: str) -> Response:
+def remove_media_handle(request: Request) -> Response:
     data = json.loads(request.body)
     response = {}
     _status = status.HTTP_400_BAD_REQUEST

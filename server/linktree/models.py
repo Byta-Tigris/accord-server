@@ -80,6 +80,7 @@ class LinkWall(models.Model):
     def remove_handles(self, handles_url: str) -> None:
         handles: QuerySet[LinkwallMediaHandles] = self.media_handles.filter(url__in=handles_url)
         if handles.exists():
+            self.media_handles.remove(*handles)
             handles.delete()
     
     
