@@ -61,4 +61,8 @@ class AccountAuthenticationFailed(ServerException):
 
 class NoLinkwallExists(ServerException):
     def __init__(self) -> None:
-        super().__init__(f"No linwall exists")
+        super().__init__(f"No linkwall exists")
+
+class NoLinkExists(ServerException):
+    def __init__(self) -> None:
+        super().__init__(f"No link exists")

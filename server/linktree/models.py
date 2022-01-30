@@ -1,11 +1,13 @@
 from datetime import datetime
+from pyexpat import model
 from django.contrib.auth.models import User
-from typing import Dict, List
+from typing import Dict, Iterable, List
 from django.db import models
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 from accounts.models import Account, SocialMediaHandle
 from utils import get_current_time, get_modified_time
+from utils.types import LinkwallLinkTypes
 # Create your models here.
 
 
@@ -14,6 +16,24 @@ class LinkWallTemplate(models.Model):
     is_active = models.BooleanField(default=True)
     created_on = models.DateTimeField(auto_now=True)
     styles = models.JSONField(default=dict)
+
+
+class LinkwallMediaHandles(models.Model):
+    platform = models.CharField(max_length=50, default="")
+    username = models.CharField(max_length=70, default="")
+    url = models.URLField(default="", unique=True)
+    avatar = models.URLField(default="")
+
+
+
+class LinkWallLink(models.Model):
+    name = models.CharField(max_length=250, default="")
+    is_visible = models.BooleanField(default=True)
+    created_on = models.DateTimeField(default=get_current_time)
+    url = models.URLField(default="")
+    icon = models.URLField(default="")
+    type = models.CharField(max_length=30, default=LinkwallLinkTypes.Normal)
+
 
 
 class LinkWall(models.Model):
@@ -27,22 +47,8 @@ class LinkWall(models.Model):
     avatar_image -- Avatar image on the wall, [default=account.avatar]
     description  -- Description for the wall [default=account.description]
     display_name -- Displat name for the wall [default=account.user.get_full_name()]
-    media_handles -- Media Links Record
-      {
-          platform: [
-              {
-                  url
-                  username: str | None
-                  avatar: str | None
-              }
-          ]
-      }
-
-    links -- {
-        name: {
-            url
-        }
-    }
+    media_handles -- Media Links Record, ManyToManyField[LinkwallMediaHandles]
+    links -- Links Record, ManyToManyField[LinkWallLink]
     styles -- Style of the wall, css properties
     {
         class_name {
@@ -54,10 +60,10 @@ class LinkWall(models.Model):
         Account, on_delete=models.CASCADE, related_name="link_tree_accounts")
     background_image = models.URLField(default="")
     avatar_image = models.URLField(default="")
-    media_handles = models.JSONField(default=dict)
+    media_handles = models.ManyToManyField(LinkwallMediaHandles, related_name="links", blank=True, default="")
     description = models.CharField(max_length=250, default="")
     display_name = models.CharField(max_length=250, default="")
-    links = models.JSONField(default=dict)
+    links = models.ManyToManyField(LinkWallLink, related_name="links", blank=True, default="")
     styles = models.JSONField(default=dict)
 
     views = models.ManyToManyField(
@@ -70,33 +76,13 @@ class LinkWall(models.Model):
         if save:
             self.save()
         return self
-
-    def set_media_handles(self, media_handles: Dict[str, Dict[str, str]]) -> None:
-        social_media_handles: QuerySet[SocialMediaHandle] = SocialMediaHandle.objects.filter(
-            Q(account=self.account) & Q(is_disabled=False))
-        transformed_handles: Dict[str, List[Dict[str, str]]] = {}
-        visited_urls = []
-        for handle in social_media_handles:
-            if handle.platform not in transformed_handles:
-                transformed_handles[handle.platform] = []
-            transformed_handles[handle.platform].append({
-                "username": handle.username,
-                "avatar": handle.avatar,
-                "url": handle.handle_url
-            })
-            visited_urls.append(handle.handle_url)
-        for platform, platform_handles in media_handles.items():
-            for handle_data in platform_handles:
-                if handle_data["url"] not in visited_urls:
-                    if platform not in transformed_handles:
-                        transformed_handles[platform] = []
-                    transformed_handles[platform].append({
-                        "username": handle_data.get("username", None),
-                        "avatar": handle_data.get("avatar", None),
-                        "url": handle_data.get("url", None)
-                    })
-
-        self.media_handles = transformed_handles
+    
+    def remove_handles(self, handles_url: str) -> None:
+        handles: QuerySet[LinkwallMediaHandles] = self.media_handles.filter(url__in=handles_url)
+        if handles.exists():
+            handles.delete()
+    
+    
     
     @staticmethod
     def get_bound_time(self) -> datetime:
@@ -118,6 +104,7 @@ class LinkWall(models.Model):
             counter = LinkwallViewCounterModel(
                  user=user, linkwall=self, created_on=get_current_time())
             counter.save()
+            self.clicks.add(counter)
 
     def add_click(self, user: User, link: str) -> None:
         time_bound_query = self.get_time_bound_query()
@@ -129,7 +116,7 @@ class LinkWall(models.Model):
                                             created_on=get_current_time()
                                             )
             counter.save()
-
+            self.clicks.add(counter)
 
 class LinkwallViewCounterModel(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -140,5 +127,5 @@ class LinkwallViewCounterModel(models.Model):
 class LinkClickCounterModel(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     linkwall = models.ForeignKey(LinkWall, on_delete=models.CASCADE)
-    link = models.TextField(default='')
+    link = models.URLField(default="")
     created_on = models.DateTimeField(default=get_current_time)

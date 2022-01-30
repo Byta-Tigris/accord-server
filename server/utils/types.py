@@ -81,3 +81,12 @@ class YoutubeHandleMetricData(MetricData):
     audience_age: dict
     audience_country: dict
 
+
+
+class LinkwallLinkTypes :
+    Header = "header"
+    MusicLink = "music_link"
+    VideoLink = "video_link"
+    ContactDetail = "contact_detail"
+    FormLink = "form_link"
+    Normal = "normal"
