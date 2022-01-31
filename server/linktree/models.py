@@ -83,7 +83,17 @@ class LinkWall(models.Model):
             self.media_handles.remove(*handles)
             handles.delete()
     
-    
+    @classmethod 
+    def get_or_create(cls, account: Account) -> 'LinkWall':
+        linkwall_queryset: QuerySet = cls.objects.filter(account=account)
+        if not linkwall_queryset.exists():
+            return cls.objects.create(
+                account=account,
+                avatar_image=account.avatar,
+                display_name=account.username,
+                description=account.description,
+            )
+        return linkwall_queryset.first()
     
     @staticmethod
     def get_bound_time(self) -> datetime:

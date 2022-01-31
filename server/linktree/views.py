@@ -73,7 +73,7 @@ def get_or_create_linkwall(request: Request) -> LinkWall:
             account=account,
             avatar_image=account.avatar,
             description=account.description,
-            display_name=account.user.get_full_name(),
+            display_name=account.username,
         )
 
 
