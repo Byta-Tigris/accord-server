@@ -2,12 +2,12 @@ from datetime import datetime
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 from accounts.models import Account, SocialMediaHandle
-from digger.base.types import Digger
+from digger.base.digger import Digger
 from insights.models import InstagramHandleMetricModel
 from utils.datastructures import MetricTable
 from utils.errors import OAuthPlatformAuthorizationFailure
 from .types import InstagramPlalformMetric
-from utils import date_to_string, get_current_time, merge_metric
+from utils import date_to_string, get_current_time
 from utils.types import Platform
 from .request_manager import InstagramRequestManager
 from .request_struct import *

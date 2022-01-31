@@ -1,7 +1,7 @@
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 from accounts.models import Account, SocialMediaHandle
-from digger.base.types import Digger
+from digger.base.digger import Digger
 from digger.youtube.request_manager import YoutubeRequestManager
 from digger.youtube.request_struct import *
 from digger.youtube.response_struct import *
