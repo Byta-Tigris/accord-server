@@ -57,7 +57,7 @@ class LinkWallSerializer:
             "description": link_tree.description,
             "display_name": link_tree.display_name,
             "media_handles": self.serialize_media_handle_queryset(link_tree.media_handles.all()),
-            "links": self.serialize_link_queryset(link_tree.links.all()),
+            "links": self.serialize_link_queryset(link_tree.links.filter(is_visible=True)),
             "url": reverse("linktree-username-wall-fetch", args=[link_tree.account.username]),
             "is_owner": current_username is not None and link_tree.account.username == current_username
         }

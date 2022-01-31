@@ -5,7 +5,7 @@ All Celery task are defined here
 from celery import shared_task
 from django.db.models import QuerySet
 from accounts.models import SocialMediaHandle
-from digger.base.types import Digger
+from digger.base.digger import Digger
 from digger.instagram.digger import InstagramDigger
 from digger.youtube.digger import YoutubeDigger
 from utils.types import Platform

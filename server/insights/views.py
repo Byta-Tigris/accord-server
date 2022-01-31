@@ -14,7 +14,7 @@ from django.db.models import QuerySet
 
 from rest_framework import status
 from accounts.models import Account, SocialMediaHandle
-from digger.base.types import Digger
+from digger.base.digger import Digger
 from digger.instagram.digger import InstagramDigger
 from digger.youtube.digger import YoutubeDigger
 from insights.serializers import LinkwallInsightsSerializer, SocialMediaHandleSerializer
