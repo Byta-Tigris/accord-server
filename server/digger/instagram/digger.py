@@ -61,7 +61,8 @@ class InstagramDigger(Digger):
             response: FacebookPagesAccountsResponse = request(self.request_manager, after=response.paging.after)
         
         handles: List[SocialMediaHandle] = list(map(lambda data: SocialMediaHandle.from_ig_user_data(account, data.instagram_business_account) , pages))
-        SocialMediaHandle.objects.bulk_create(handles)
+        media_handles = SocialMediaHandle.objects.bulk_create(handles)
+        self.attach_handles_to_linkwall(account, media_handles)
         handles += list(handle_queryset)
         return handles
 

@@ -2,6 +2,8 @@ import datetime
 from typing import Any, Dict, List, Tuple, Union
 
 from django.db.models.query import QuerySet
+from accounts.models import Account, SocialMediaHandle
+from linktree.models import LinkWall, LinkwallMediaHandles
 
 from utils import get_current_time, merge_metric
 from utils.datastructures import MetricTable
@@ -166,6 +168,21 @@ class Digger(AbstractDigger):
 
         """
         pass
+
+    def attach_handles_to_linkwall(self, account: Account, media_handles: List[SocialMediaHandle]) -> None:
+        linkwall_queryset: QuerySet[LinkWall] = LinkWall.objects.filter(account=account)
+        if not linkwall_queryset.exists():
+            return None
+        linkwall: LinkWall = linkwall_queryset.first()
+        handles = LinkwallMediaHandles.objects.bulk_create([LinkwallMediaHandles(
+            platform=handle.platform,
+            username=handle.username,
+            url=handle.handle_url,
+            avatar=handle.avatar
+        ) for handle in media_handles])
+        linkwall.media_handles.add(*handles)
+        return None
+
 
     def get_total_platform_metric(self, handle_metric_queryset:QuerySet['SocialMediaHandleMetrics']) -> Tuple[Dict[str, Dict[str, Union[int, float]]], Dict[str, Dict[str, Union[int, float]]]]:
         platform_metric = {}

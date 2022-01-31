@@ -62,7 +62,8 @@ class YoutubeDigger(Digger):
             response: YoutubeChannelListResponse = request(self.request_manager, pageToken=response.next_page_token)
         
         handles: List[SocialMediaHandle]- list(map(lambda data: SocialMediaHandle.from_yt_channel(account, data), channels))
-        SocialMediaHandle.objects.bulk_create(handles)
+        media_handles = SocialMediaHandle.objects.bulk_create(handles)
+        self.attach_handles_to_linkwall(account, media_handles)
         handles += list(handle_queryset)
         return handles
     
