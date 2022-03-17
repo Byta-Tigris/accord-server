@@ -1,12 +1,1 @@
 version: '3.9'
-services:
-  postgres:
-    image: postgis/postgis
-    restart: always
-    environment:
-      - POSTGRES_USER=${ACCORD_POSTGRES_USERNAME}
-      - POSTGRES_PASSWORD=${ACCORD_POSTGRES_PASSWORD}
-    ports:
-      - '5438:5432'
-    volumes:
-      - /opt/accord/postgres-data:/var/lib/postgresql/data

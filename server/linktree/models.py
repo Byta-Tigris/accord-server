@@ -21,8 +21,8 @@ class LinkWallTemplate(models.Model):
 class LinkwallMediaHandles(models.Model):
     platform = models.CharField(max_length=50, default="")
     username = models.CharField(max_length=70, default="")
-    url = models.URLField(default="", unique=True)
-    avatar = models.URLField(default="")
+    url = models.TextField(default="", unique=True)
+    avatar = models.TextField(default="")
 
 
 
@@ -30,8 +30,8 @@ class LinkWallLink(models.Model):
     name = models.CharField(max_length=250, default="")
     is_visible = models.BooleanField(default=True)
     created_on = models.DateTimeField(default=get_current_time)
-    url = models.URLField(default="")
-    icon = models.URLField(default="")
+    url = models.TextField(default="")
+    icon = models.TextField(default="")
     type = models.CharField(max_length=30, default=LinkwallLinkTypes.Normal)
 
 
@@ -58,8 +58,8 @@ class LinkWall(models.Model):
     """
     account = models.ForeignKey(
         Account, on_delete=models.CASCADE, related_name="link_tree_accounts")
-    background_image = models.URLField(default="")
-    avatar_image = models.URLField(default="")
+    background_image = models.TextField(default="")
+    avatar_image = models.TextField(default="")
     media_handles = models.ManyToManyField(LinkwallMediaHandles, related_name="links", blank=True, default="")
     description = models.CharField(max_length=250, default="")
     display_name = models.CharField(max_length=250, default="")
@@ -138,5 +138,5 @@ class LinkwallViewCounterModel(models.Model):
 class LinkClickCounterModel(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     linkwall = models.ForeignKey(LinkWall, on_delete=models.CASCADE)
-    link = models.URLField(default="")
+    link = models.TextField(default="")
     created_on = models.DateTimeField(default=get_current_time)
